@@ -1,37 +1,106 @@
 /* =======================================================
    ScytaleDroid Theme Tokens
    -------------------------------------------------------
-   How to use:
-     - main_style.css only references these CSS variables.
-     - Switch themes with: <html data-theme="dark"> or "hc".
+   Default look embraces a neon Tron / Nessus vibe.
+   Switch palettes via data-theme (tron, classic, dark, hc).
    ======================================================= */
 
-/* ---------- Base (Light) -------------------------------------------------- */
-:root {
+/* ---------- Tron Neon (default) ----------------------------------------- */
+:root,
+:root[data-theme="tron"],
+body[data-theme="tron"] {
   /* Palette */
-  --bg: #ffffff;
-  --text: #1f2937;         /* slate-800 */
-  --muted: #6b7280;        /* slate-500 */
+  --bg: #050b19;
+  --bg-alt: #071027;
+  --text: #dff6ff;
+  --muted: rgba(189, 236, 255, .68);
 
-  --brand: #2563eb;        /* blue-600 */
-  --brand-contrast: #ffffff;
+  --brand: #19f5ff;
+  --brand-contrast: #04101d;
+  --brand-secondary: #7a5cff;
 
-  --surface: #f8fafc;      /* slate-50 */
-  --surface-2: #eef2f7;    /* custom light surface */
-  --border: #e5e7eb;       /* slate-200 */
+  --surface: rgba(9, 22, 48, 0.86);
+  --surface-2: rgba(12, 30, 65, 0.78);
+  --panel-bg: rgba(5, 19, 41, 0.92);
+  --panel-border: rgba(25, 245, 255, .22);
+  --border: rgba(26, 97, 133, 0.45);
 
   /* Semantic */
-  --ok:   #16a34a;         /* green-600 */
-  --warn: #f59e0b;         /* amber-500 */
-  --bad:  #dc2626;         /* red-600 */
-  --info: #0ea5e9;         /* sky-500 */
+  --ok:   #5ef2a8;
+  --warn: #ffc85c;
+  --bad:  #ff5c84;
+  --info: #56c9ff;
+
+  /* Glow + accents */
+  --glow-soft: 0 0 20px rgba(25, 245, 255, 0.25);
+  --glow-strong: 0 0 32px rgba(122, 92, 255, 0.35);
+  --grid-line: rgba(25, 245, 255, 0.12);
+  --scanline: rgba(122, 92, 255, 0.04);
 
   /* Shape / depth */
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.05);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 18px 40px rgba(2, 10, 25, 0.55);
 
   /* Spacing scale */
+  --space-1: .25rem;
+  --space-2: .55rem;
+  --space-3: .85rem;
+  --space-4: 1.1rem;
+  --space-5: 1.65rem;
+  --space-6: 2.35rem;
+
+  /* Severity chips (backgrounds) */
+  --sev-critical-bg: rgba(255, 92, 132, 0.18);
+  --sev-high-bg:     rgba(255, 116, 158, 0.16);
+  --sev-medium-bg:   rgba(255, 200, 92, 0.14);
+  --sev-low-bg:      rgba(118, 189, 255, 0.12);
+  --sev-info-bg:     rgba(86, 201, 255, 0.18);
+
+  /* Severity text colors */
+  --sev-critical-fg: #ff9fb8;
+  --sev-high-fg:     #ffb4c9;
+  --sev-medium-fg:   #ffe4a1;
+  --sev-low-fg:      #9ed5ff;
+  --sev-info-fg:     #a7ecff;
+
+  /* Link states */
+  --link:        var(--brand);
+  --link-hover:  #78f1ff;
+}
+
+/* ---------- Classic Light ------------------------------------------------ */
+:root[data-theme="classic"],
+body[data-theme="classic"] {
+  --bg: #ffffff;
+  --bg-alt: #f8fafc;
+  --text: #1f2937;
+  --muted: #6b7280;
+
+  --brand: #2563eb;
+  --brand-contrast: #ffffff;
+  --brand-secondary: #7a5cff;
+
+  --surface: #f8fafc;
+  --surface-2: #eef2f7;
+  --panel-bg: #ffffff;
+  --panel-border: rgba(59, 130, 246, .25);
+  --border: #e5e7eb;
+
+  --ok:   #16a34a;
+  --warn: #f59e0b;
+  --bad:  #dc2626;
+  --info: #0ea5e9;
+
+  --glow-soft: 0 10px 24px rgba(59, 130, 246, .15);
+  --glow-strong: 0 20px 48px rgba(124, 58, 237, .18);
+  --grid-line: rgba(59, 130, 246, 0.15);
+  --scanline: rgba(59, 130, 246, 0.08);
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 24px rgba(15, 23, 42, .08);
+
   --space-1: .25rem;
   --space-2: .5rem;
   --space-3: .75rem;
@@ -39,41 +108,53 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  /* Severity chips (backgrounds) */
   --sev-critical-bg: color-mix(in srgb, var(--bad) 22%, #fff);
   --sev-high-bg:     color-mix(in srgb, var(--bad) 14%, #fff);
   --sev-medium-bg:   color-mix(in srgb, var(--warn) 18%, #fff);
   --sev-low-bg:      #eef2f7;
   --sev-info-bg:     color-mix(in srgb, var(--info) 15%, #fff);
 
-  /* Severity text colors */
   --sev-critical-fg: #7a0f0f;
   --sev-high-fg:     #8a1b1b;
   --sev-medium-fg:   #8a6b05;
   --sev-low-fg:      #475569;
   --sev-info-fg:     #0a6a8a;
 
-  /* Link states */
   --link:        var(--brand);
   --link-hover:  color-mix(in srgb, var(--brand) 85%, #000);
 }
 
-/* ---------- Dark Theme ---------------------------------------------------- */
-/* Enable with <html data-theme="dark"> or body[data-theme="dark"] */
+/* ---------- Midnight Dark ------------------------------------------------ */
 :root[data-theme="dark"],
 body[data-theme="dark"] {
-  --bg: #0b1220;           /* deep navy */
-  --text: #e5e7eb;         /* slate-200 */
-  --muted: #94a3b8;        /* slate-400 */
+  --bg: #0b1220;
+  --bg-alt: #0f172a;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
 
-  --brand: #60a5fa;        /* blue-400 */
+  --brand: #60a5fa;
   --brand-contrast: #0b1220;
+  --brand-secondary: #a855f7;
 
-  --surface: #0f172a;      /* slate-900 */
-  --surface-2: #111827;    /* gray-900 */
-  --border: #1f2937;       /* slate-800 */
+  --surface: #0f172a;
+  --surface-2: #111827;
+  --panel-bg: rgba(15, 23, 42, .92);
+  --panel-border: rgba(148, 163, 184, .25);
+  --border: #1f2937;
 
-  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+  --ok:   #34d399;
+  --warn: #fbbf24;
+  --bad:  #f87171;
+  --info: #38bdf8;
+
+  --glow-soft: 0 14px 28px rgba(59, 130, 246, .18);
+  --glow-strong: 0 24px 48px rgba(124, 58, 237, .2);
+  --grid-line: rgba(148, 163, 184, 0.14);
+  --scanline: rgba(56, 189, 248, 0.08);
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 18px 40px rgba(15, 23, 42, .55);
 
   --sev-critical-bg: color-mix(in srgb, var(--bad) 28%, #0b1220);
   --sev-high-bg:     color-mix(in srgb, var(--bad) 20%, #0b1220);
@@ -81,34 +162,47 @@ body[data-theme="dark"] {
   --sev-low-bg:      #111827;
   --sev-info-bg:     color-mix(in srgb, var(--info) 22%, #0b1220);
 
-  --sev-critical-fg: #fecaca;  /* red-200 */
+  --sev-critical-fg: #fecaca;
   --sev-high-fg:     #fecaca;
-  --sev-medium-fg:   #fde68a;  /* amber-200 */
-  --sev-low-fg:      #cbd5e1;  /* slate-300 */
-  --sev-info-fg:     #bae6fd;  /* sky-200 */
+  --sev-medium-fg:   #fde68a;
+  --sev-low-fg:      #cbd5e1;
+  --sev-info-fg:     #bae6fd;
 
-  --link:       #93c5fd;  /* blue-300 */
-  --link-hover: #bfdbfe;  /* blue-200 */
+  --link:       #93c5fd;
+  --link-hover: #bfdbfe;
 }
 
 /* ---------- High-Contrast Theme ------------------------------------------ */
-/* Enable with <html data-theme="hc"> or body[data-theme="hc"] */
 :root[data-theme="hc"],
 body[data-theme="hc"] {
   --bg: #ffffff;
+  --bg-alt: #ffffff;
   --text: #000000;
   --muted: #333333;
 
-  --brand: #0000ee;            /* classic link blue */
+  --brand: #0000ee;
   --brand-contrast: #ffffff;
+  --brand-secondary: #5a00ee;
 
   --surface: #ffffff;
   --surface-2: #f2f2f2;
+  --panel-bg: #ffffff;
+  --panel-border: #000000;
   --border: #000000;
 
-  --shadow: none;
-  --radius: 0;                 /* square edges for clarity */
+  --glow-soft: none;
+  --glow-strong: none;
+  --grid-line: rgba(0, 0, 0, 0.08);
+  --scanline: rgba(0, 0, 0, 0.05);
+
+  --radius: 0;
   --radius-sm: 0;
+  --shadow: none;
+
+  --ok:   #008000;
+  --warn: #b8860b;
+  --bad:  #8b0000;
+  --info: #004b8d;
 
   --sev-critical-bg: #ffcccc;
   --sev-high-bg:     #ffd6d6;
@@ -126,11 +220,3 @@ body[data-theme="hc"] {
   --link-hover: #0000aa;
 }
 
-/* ---------- Optional: Auto dark by system pref --------------------------- */
-/* Only applied if you add the data-theme attr dynamically or not at all.
-   If you prefer system-based default, uncomment:
-@media (prefers-color-scheme: dark){
-  :root { color-scheme: dark; }
-  :root:not([data-theme]) { @apply the dark block above… }
-}
-*/

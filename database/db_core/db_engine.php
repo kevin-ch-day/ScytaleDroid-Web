@@ -1,5 +1,9 @@
 <?php
-require_once __DIR__ . '/db_config.php';
+$configPath = __DIR__ . '/db_config.php';
+if (!file_exists($configPath)) {
+    throw new RuntimeException('Database config missing. Provide credentials in database/db_core/db_config.php.');
+}
+require_once $configPath;
 
 function db(): PDO
 {
