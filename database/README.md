@@ -30,6 +30,23 @@ Adjust index names to match your organisation’s conventions.
 - No write access is required.
 - Character set should be `utf8mb4`.
 
+### Environment overrides
+
+If editing `database/db_core/db_config.php` is inconvenient for your environment, you can override any setting at runtime with environment variables before Apache/PHP start:
+
+| Variable | Purpose |
+| --- | --- |
+| `SCYTALEDROID_DB_HOST` | Hostname for the MySQL/MariaDB server. |
+| `SCYTALEDROID_DB_PORT` | TCP port when not using a socket. |
+| `SCYTALEDROID_DB_SOCKET` | Path to a Unix socket (skips host/port). |
+| `SCYTALEDROID_DB_NAME` | Database/schema name. |
+| `SCYTALEDROID_DB_USER` | Database user. |
+| `SCYTALEDROID_DB_PASS` | Database password. |
+| `SCYTALEDROID_DB_CHARSET` | Optional charset (defaults to `utf8mb4`). |
+| `SCYTALEDROID_DB_DSN` | Full PDO DSN, if you need complete manual control. |
+
+Only set the values you need—anything unset falls back to the constants in `db_config.php`.
+
 ## Sanity Checks
 
 The directory queries assume `permission_audit_snapshots.snapshot_key` uses the pattern

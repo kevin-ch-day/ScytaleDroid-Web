@@ -1,285 +1,169 @@
 /* =======================================================
    Table Styles (imported by main_style.css)
-   Uses tokens from theme_style.css
+   Streamlined appearance shared across themes.
    ======================================================= */
 
-/* Wrapper that allows horizontal scroll on small screens */
-.table-responsive{
+.table-responsive {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid rgba(25,245,255,.18);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius);
-  background: rgba(4,16,34,.65);
-  box-shadow: inset 0 0 24px rgba(25,245,255,.08);
-  backdrop-filter: blur(6px);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
 }
 
-/* Base table */
-table.table{
+table.table {
   width: 100%;
   border-collapse: collapse;
-  background: transparent;
+  background: var(--panel-bg);
   border-radius: var(--radius);
-  overflow: hidden;
   color: var(--text);
 }
 
 .table th,
-.table td{
+.table td {
   text-align: left;
-  padding: .75rem .85rem;
-  border-bottom: 1px solid rgba(25,245,255,.14);
+  padding: .85rem 1rem;
+  border-bottom: 1px solid var(--border);
   vertical-align: top;
-  position: relative;
 }
 
-.table th{
-  background: linear-gradient(180deg, rgba(25,245,255,.18), rgba(5,17,36,.65));
-  font-weight: 700;
+.table th {
+  background: var(--surface-2);
+  font-weight: 600;
   color: var(--text);
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: .08em;
 }
 
-/* Striped rows */
-.table-striped tbody tr:nth-child(even){
-  background: rgba(4, 20, 42, 0.48);
+.table-striped tbody tr:nth-child(even) {
+  background: var(--surface-2);
 }
 
-/* Hover state */
-.table-hover tbody tr:hover{
-  background: rgba(25,245,255,.14);
-  box-shadow: inset 0 0 18px rgba(25,245,255,.18);
+.table-hover tbody tr:hover {
+  background: var(--table-row-hover);
 }
 
-/* Compact density variant */
 .table-compact th,
-.table-compact td{
-  padding: .45rem .55rem;
+.table-compact td {
+  padding: .6rem .75rem;
   font-size: .95rem;
 }
 
-/* Tightest density (for large datasets) */
 .table-dense th,
-.table-dense td{
-  padding: .35rem .45rem;
+.table-dense td {
+  padding: .45rem .6rem;
   font-size: .9rem;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-/* Right/center alignment helpers */
 td.col-num,
-th.col-num{ text-align: right; }
-td.col-center,
-th.col-center{ text-align: center; }
-.nowrap{ white-space: nowrap; }
+th.col-num {
+  text-align: right;
+}
 
-/* Truncated cell content with tooltip */
-.cell-clip{
+td.col-center,
+th.col-center {
+  text-align: center;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.cell-clip {
   max-width: 520px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Sticky header (use with .table-sticky inside .table-responsive) */
-.table-sticky thead th{
+.table-sticky thead th {
   position: sticky;
   top: 0;
   z-index: 2;
   box-shadow: 0 1px 0 var(--border);
 }
 
-/* Sortable headers (add data-sort attr: none|asc|desc) */
-.table th.sort{
+.table th.sort {
   cursor: pointer;
   user-select: none;
 }
-.table th.sort::after{
+
+.table th.sort::after {
   content: '⇅';
   font-size: .8rem;
   margin-left: .35rem;
   color: var(--muted);
 }
-.table th.sort[data-sort="asc"]::after{
+
+.table th.sort[data-sort="asc"]::after {
   content: '↑';
   color: var(--text);
 }
-.table th.sort[data-sort="desc"]::after{
+
+.table th.sort[data-sort="desc"]::after {
   content: '↓';
   color: var(--text);
 }
 
-/* Divider row (section headers inside tbody) */
-.table .row-section th{
-  background: var(--surface);
+.table .row-section th {
+  background: var(--surface-2);
   color: var(--muted);
   font-weight: 600;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 
-/* Emphasize “danger/warn/info” rows */
-tr.is-bad    { background: color-mix(in srgb, var(--bad) 6%,   #fff); }
-tr.is-warn   { background: color-mix(in srgb, var(--warn) 7%,  #fff); }
-tr.is-info   { background: color-mix(in srgb, var(--info) 6%,  #fff); }
+tr.is-bad    { background: var(--table-row-bad); }
+tr.is-warn   { background: var(--table-row-warn); }
+tr.is-info   { background: var(--table-row-info); }
 
-/* Severity chips (use inside cells) */
-.chip{
+.chip {
   display: inline-block;
-  padding: .2rem .5rem;
+  padding: .25rem .55rem;
   border-radius: 9999px;
   font-size: .75rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
-.chip-critical{ background: var(--sev-critical-bg); color: var(--sev-critical-fg); }
-.chip-high    { background: var(--sev-high-bg);     color: var(--sev-high-fg); }
-.chip-medium  { background: var(--sev-medium-bg);   color: var(--sev-medium-fg); }
-.chip-low     { background: var(--sev-low-bg);      color: var(--sev-low-fg); }
-.chip-info    { background: var(--sev-info-bg);     color: var(--sev-info-fg); }
-.chip-muted   { background: var(--surface-2);       color: var(--muted); }
 
-/* Small status dot + label */
-.dot{
-  display:inline-block; width:.55rem; height:.55rem; border-radius:50%; margin-right:.4rem;
+.chip-critical { background: var(--sev-critical-bg); color: var(--sev-critical-fg); }
+.chip-high     { background: var(--sev-high-bg);     color: var(--sev-high-fg); }
+.chip-medium   { background: var(--sev-medium-bg);   color: var(--sev-medium-fg); }
+.chip-low      { background: var(--sev-low-bg);      color: var(--sev-low-fg); }
+.chip-info     { background: var(--sev-info-bg);     color: var(--sev-info-fg); }
+.chip-muted    { background: var(--surface-2);       color: var(--muted); }
+
+.dot {
+  display: inline-block;
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  margin-right: .4rem;
   vertical-align: middle;
 }
+
 .dot-ok   { background: var(--ok); }
 .dot-warn { background: var(--warn); }
 .dot-bad  { background: var(--bad); }
 .dot-info { background: var(--info); }
 
-/* Mini action buttons inside tables */
-.table .btn-cell{
-  display:inline-flex; align-items:center; gap:.4ch;
-  padding:.35rem .55rem; border-radius: var(--radius-sm);
-  font-size:.85rem; border:1px solid var(--border); background:#fff; color:var(--text);
-  text-decoration:none;
-}
-.table .btn-cell:hover{ background: var(--surface); }
-
-/* Key-value list table (two-column layout) */
-.kv{
-  width:100%; border:1px solid var(--border); border-radius: var(--radius); overflow:hidden;
-}
-.kv tr + tr td, .kv tr + tr th{ border-top:1px solid var(--border); }
-.kv th{
-  width: 28%;
+.table .btn-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: .4ch;
+  padding: .35rem .65rem;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  border: 1px solid var(--border);
   background: var(--surface-2);
-  font-weight: 600;
   color: var(--text);
-}
-.kv th, .kv td{
-  padding:.6rem .75rem; vertical-align: top;
-}
-
-/* Pagination */
-.pager{
-  display:flex;
-  gap:.6rem;
-  align-items:center;
-  justify-content:flex-end;
-  margin-top: .75rem;
+  text-decoration: none;
+  transition: background-color .16s ease, border-color .16s ease;
 }
 
-.pager .page,
-.pager .prev,
-.pager .next{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width: 2.4rem;
-  height: 2.4rem;
-  padding: 0 .75rem;
-  border:1px solid rgba(25,245,255,.35);
-  border-radius: var(--radius-sm);
-  background: rgba(5,20,42,.78);
-  color:var(--text);
-  text-decoration:none;
-  font-weight:600;
-  font-size:.95rem;
-  transition: transform .12s ease, box-shadow .18s ease;
-}
-
-.pager .page:hover,
-.pager .prev:hover,
-.pager .next:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 0 14px rgba(25,245,255,.28);
-}
-
-.pager .active{
-  background: linear-gradient(135deg, rgba(25,245,255,.55), rgba(122,92,255,.65));
-  border-color: rgba(25,245,255,.65);
-  color: var(--brand-contrast);
-}
-
-.pager .disabled{
-  opacity:.45;
-  pointer-events:none;
-}
-
-.copy-btn{
-  display:inline-flex;
-  align-items:center;
-  gap:.4ch;
-  padding:.35rem .6rem;
-  border-radius: var(--radius-sm);
-  border:1px solid rgba(25,245,255,.25);
-  background: rgba(5,20,45,.6);
-  color: var(--muted);
-  font-size:.75rem;
-  text-transform: uppercase;
-  letter-spacing:.05em;
-  cursor:pointer;
-  transition: background .18s ease, color .18s ease, border-color .18s ease;
-}
-
-.copy-btn:hover{
-  background: rgba(25,245,255,.15);
-  color: var(--text);
-  border-color: rgba(25,245,255,.45);
-}
-
-.copy-btn.is-copied{
-  color: var(--brand);
-  border-color: rgba(25,245,255,.65);
-}
-
-/* Caption and meta row */
-.table-caption{
-  display:flex; align-items:center; justify-content:space-between;
-  gap: 1rem; margin-bottom:.5rem; color: var(--muted);
-}
-.table-caption .title{ font-weight:700; color: var(--text); }
-
-/* Responsive stack (optional pattern)
-   Add class .table-stack to <table> and data-label="Header" to each <td> */
-@media (max-width: 768px){
-  table.table-stack thead{ display:none; }
-  table.table-stack, table.table-stack tbody, table.table-stack tr, table.table-stack td{
-    display:block; width:100%;
-  }
-  table.table-stack tr{
-    border:1px solid var(--border);
-    border-radius: var(--radius);
-    background:#fff;
-    margin-bottom:.75rem;
-    overflow:hidden;
-  }
-  table.table-stack td{
-    border-bottom:1px solid var(--border);
-    padding:.55rem .75rem;
-  }
-  table.table-stack td:last-child{ border-bottom:0; }
-  table.table-stack td::before{
-    content: attr(data-label);
-    display:block;
-    font-weight:700;
-    color: var(--muted);
-    margin-bottom:.2rem;
-  }
+.table .btn-cell:hover {
+  background: var(--button-hover);
+  border-color: var(--nav-active-border);
 }

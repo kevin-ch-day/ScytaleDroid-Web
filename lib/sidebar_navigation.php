@@ -42,18 +42,17 @@ $readmeUrl   = BASE_URL . '/README.md';
 ?>
 <div class="sidebar-header">
   <div class="sidebar-brand">
-    <span class="sidebar-brand-mark">SD</span>
     <span class="sidebar-brand-text">
       <?= e(APP_NAME ?? 'ScytaleDroid') ?>
-      <small>Telemetry Console</small>
+      <small>Analysis Console</small>
     </span>
   </div>
   <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-controls="sidebar-nav" aria-expanded="true">
     <span class="visually-hidden" data-sidebar-toggle-label>Collapse navigation</span>
-    <span aria-hidden="true">⟡</span>
+    <span aria-hidden="true">☰</span>
   </button>
 </div>
-<p class="sidebar-meta">Read-only insights into the latest static analysis runs. Use filters to focus on the riskiest packages first.</p>
+<p class="sidebar-meta">Browse the latest scan results and focus on the riskiest packages first.</p>
 <nav class="sidebar-nav" aria-label="Primary">
   <?php foreach ($navItems as $item): ?>
     <?php
