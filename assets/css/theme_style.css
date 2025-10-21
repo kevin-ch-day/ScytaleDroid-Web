@@ -1,0 +1,136 @@
+/* =======================================================
+   ScytaleDroid Theme Tokens
+   -------------------------------------------------------
+   How to use:
+     - main_style.css only references these CSS variables.
+     - Switch themes with: <html data-theme="dark"> or "hc".
+   ======================================================= */
+
+/* ---------- Base (Light) -------------------------------------------------- */
+:root {
+  /* Palette */
+  --bg: #ffffff;
+  --text: #1f2937;         /* slate-800 */
+  --muted: #6b7280;        /* slate-500 */
+
+  --brand: #2563eb;        /* blue-600 */
+  --brand-contrast: #ffffff;
+
+  --surface: #f8fafc;      /* slate-50 */
+  --surface-2: #eef2f7;    /* custom light surface */
+  --border: #e5e7eb;       /* slate-200 */
+
+  /* Semantic */
+  --ok:   #16a34a;         /* green-600 */
+  --warn: #f59e0b;         /* amber-500 */
+  --bad:  #dc2626;         /* red-600 */
+  --info: #0ea5e9;         /* sky-500 */
+
+  /* Shape / depth */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.05);
+
+  /* Spacing scale */
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* Severity chips (backgrounds) */
+  --sev-critical-bg: color-mix(in srgb, var(--bad) 22%, #fff);
+  --sev-high-bg:     color-mix(in srgb, var(--bad) 14%, #fff);
+  --sev-medium-bg:   color-mix(in srgb, var(--warn) 18%, #fff);
+  --sev-low-bg:      #eef2f7;
+  --sev-info-bg:     color-mix(in srgb, var(--info) 15%, #fff);
+
+  /* Severity text colors */
+  --sev-critical-fg: #7a0f0f;
+  --sev-high-fg:     #8a1b1b;
+  --sev-medium-fg:   #8a6b05;
+  --sev-low-fg:      #475569;
+  --sev-info-fg:     #0a6a8a;
+
+  /* Link states */
+  --link:        var(--brand);
+  --link-hover:  color-mix(in srgb, var(--brand) 85%, #000);
+}
+
+/* ---------- Dark Theme ---------------------------------------------------- */
+/* Enable with <html data-theme="dark"> or body[data-theme="dark"] */
+:root[data-theme="dark"],
+body[data-theme="dark"] {
+  --bg: #0b1220;           /* deep navy */
+  --text: #e5e7eb;         /* slate-200 */
+  --muted: #94a3b8;        /* slate-400 */
+
+  --brand: #60a5fa;        /* blue-400 */
+  --brand-contrast: #0b1220;
+
+  --surface: #0f172a;      /* slate-900 */
+  --surface-2: #111827;    /* gray-900 */
+  --border: #1f2937;       /* slate-800 */
+
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+
+  --sev-critical-bg: color-mix(in srgb, var(--bad) 28%, #0b1220);
+  --sev-high-bg:     color-mix(in srgb, var(--bad) 20%, #0b1220);
+  --sev-medium-bg:   color-mix(in srgb, var(--warn) 22%, #0b1220);
+  --sev-low-bg:      #111827;
+  --sev-info-bg:     color-mix(in srgb, var(--info) 22%, #0b1220);
+
+  --sev-critical-fg: #fecaca;  /* red-200 */
+  --sev-high-fg:     #fecaca;
+  --sev-medium-fg:   #fde68a;  /* amber-200 */
+  --sev-low-fg:      #cbd5e1;  /* slate-300 */
+  --sev-info-fg:     #bae6fd;  /* sky-200 */
+
+  --link:       #93c5fd;  /* blue-300 */
+  --link-hover: #bfdbfe;  /* blue-200 */
+}
+
+/* ---------- High-Contrast Theme ------------------------------------------ */
+/* Enable with <html data-theme="hc"> or body[data-theme="hc"] */
+:root[data-theme="hc"],
+body[data-theme="hc"] {
+  --bg: #ffffff;
+  --text: #000000;
+  --muted: #333333;
+
+  --brand: #0000ee;            /* classic link blue */
+  --brand-contrast: #ffffff;
+
+  --surface: #ffffff;
+  --surface-2: #f2f2f2;
+  --border: #000000;
+
+  --shadow: none;
+  --radius: 0;                 /* square edges for clarity */
+  --radius-sm: 0;
+
+  --sev-critical-bg: #ffcccc;
+  --sev-high-bg:     #ffd6d6;
+  --sev-medium-bg:   #ffe9b3;
+  --sev-low-bg:      #eeeeee;
+  --sev-info-bg:     #cfefff;
+
+  --sev-critical-fg: #4d0000;
+  --sev-high-fg:     #660000;
+  --sev-medium-fg:   #5c4a00;
+  --sev-low-fg:      #111111;
+  --sev-info-fg:     #003a66;
+
+  --link:       #0000ee;
+  --link-hover: #0000aa;
+}
+
+/* ---------- Optional: Auto dark by system pref --------------------------- */
+/* Only applied if you add the data-theme attr dynamically or not at all.
+   If you prefer system-based default, uncomment:
+@media (prefers-color-scheme: dark){
+  :root { color-scheme: dark; }
+  :root:not([data-theme]) { @apply the dark block above… }
+}
+*/
