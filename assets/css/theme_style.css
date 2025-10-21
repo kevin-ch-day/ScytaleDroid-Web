@@ -1,222 +1,143 @@
 /* =======================================================
    ScytaleDroid Theme Tokens
    -------------------------------------------------------
-   Default look embraces a neon Tron / Nessus vibe.
-   Switch palettes via data-theme (tron, classic, dark, hc).
+   Provides shared design tokens for light and dark modes.
+   Keep values restrained for a simple, utilitarian UI.
    ======================================================= */
 
-/* ---------- Tron Neon (default) ----------------------------------------- */
+/* ---------- Light (default) ---------------------------------------------- */
 :root,
-:root[data-theme="tron"],
-body[data-theme="tron"] {
+:root[data-theme="light"],
+body[data-theme="light"] {
   /* Palette */
-  --bg: #050b19;
-  --bg-alt: #071027;
-  --text: #dff6ff;
-  --muted: rgba(189, 236, 255, .68);
+  --bg: #f5f7fb;
+  --bg-alt: #ffffff;
+  --text: #1f2933;
+  --muted: #5b6573;
 
-  --brand: #19f5ff;
-  --brand-contrast: #04101d;
-  --brand-secondary: #7a5cff;
+  --brand: #1d4ed8;
+  --brand-contrast: #ffffff;
+  --brand-secondary: #2563eb;
 
-  --surface: rgba(9, 22, 48, 0.86);
-  --surface-2: rgba(12, 30, 65, 0.78);
-  --panel-bg: rgba(5, 19, 41, 0.92);
-  --panel-border: rgba(25, 245, 255, .22);
-  --border: rgba(26, 97, 133, 0.45);
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --surface-hover: #e1e7f3;
+  --panel-bg: #ffffff;
+  --panel-border: #d6dbe4;
+  --border: #d6dbe4;
+
+  --nav-active-bg: #e4ecf9;
+  --nav-active-border: #94b3f4;
+  --button-hover: #dce6fa;
+  --table-row-hover: #ecf2ff;
+  --table-row-bad: #fdeaea;
+  --table-row-warn: #fff4e5;
+  --table-row-info: #e6f5ff;
 
   /* Semantic */
-  --ok:   #5ef2a8;
-  --warn: #ffc85c;
-  --bad:  #ff5c84;
-  --info: #56c9ff;
+  --ok:   #15803d;
+  --warn: #b45309;
+  --bad:  #b91c1c;
+  --info: #0369a1;
 
-  /* Glow + accents */
-  --glow-soft: 0 0 20px rgba(25, 245, 255, 0.25);
-  --glow-strong: 0 0 32px rgba(122, 92, 255, 0.35);
-  --grid-line: rgba(25, 245, 255, 0.12);
-  --scanline: rgba(122, 92, 255, 0.04);
+  /* Subtle depth */
+  --glow-soft: none;
+  --glow-strong: none;
+  --grid-line: rgba(209, 213, 219, 0.2);
+  --scanline: rgba(148, 163, 184, 0.14);
 
   /* Shape / depth */
-  --radius: 16px;
-  --radius-sm: 10px;
-  --shadow: 0 18px 40px rgba(2, 10, 25, 0.55);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 
   /* Spacing scale */
   --space-1: .25rem;
-  --space-2: .55rem;
+  --space-2: .5rem;
   --space-3: .85rem;
   --space-4: 1.1rem;
-  --space-5: 1.65rem;
-  --space-6: 2.35rem;
+  --space-5: 1.75rem;
+  --space-6: 2.5rem;
 
   /* Severity chips (backgrounds) */
-  --sev-critical-bg: rgba(255, 92, 132, 0.18);
-  --sev-high-bg:     rgba(255, 116, 158, 0.16);
-  --sev-medium-bg:   rgba(255, 200, 92, 0.14);
-  --sev-low-bg:      rgba(118, 189, 255, 0.12);
-  --sev-info-bg:     rgba(86, 201, 255, 0.18);
+  --sev-critical-bg: #fde2e2;
+  --sev-high-bg:     #fce8e8;
+  --sev-medium-bg:   #fbeacb;
+  --sev-low-bg:      #e7edf6;
+  --sev-info-bg:     #d9ecff;
 
   /* Severity text colors */
-  --sev-critical-fg: #ff9fb8;
-  --sev-high-fg:     #ffb4c9;
-  --sev-medium-fg:   #ffe4a1;
-  --sev-low-fg:      #9ed5ff;
-  --sev-info-fg:     #a7ecff;
+  --sev-critical-fg: #7a1212;
+  --sev-high-fg:     #7f1d1d;
+  --sev-medium-fg:   #7a4a04;
+  --sev-low-fg:      #3f4c63;
+  --sev-info-fg:     #0f4c81;
 
   /* Link states */
   --link:        var(--brand);
-  --link-hover:  #78f1ff;
+  --link-hover:  #1d4ed8;
 }
 
-/* ---------- Classic Light ------------------------------------------------ */
-:root[data-theme="classic"],
-body[data-theme="classic"] {
-  --bg: #ffffff;
-  --bg-alt: #f8fafc;
-  --text: #1f2937;
-  --muted: #6b7280;
-
-  --brand: #2563eb;
-  --brand-contrast: #ffffff;
-  --brand-secondary: #7a5cff;
-
-  --surface: #f8fafc;
-  --surface-2: #eef2f7;
-  --panel-bg: #ffffff;
-  --panel-border: rgba(59, 130, 246, .25);
-  --border: #e5e7eb;
-
-  --ok:   #16a34a;
-  --warn: #f59e0b;
-  --bad:  #dc2626;
-  --info: #0ea5e9;
-
-  --glow-soft: 0 10px 24px rgba(59, 130, 246, .15);
-  --glow-strong: 0 20px 48px rgba(124, 58, 237, .18);
-  --grid-line: rgba(59, 130, 246, 0.15);
-  --scanline: rgba(59, 130, 246, 0.08);
-
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 8px 24px rgba(15, 23, 42, .08);
-
-  --space-1: .25rem;
-  --space-2: .5rem;
-  --space-3: .75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-
-  --sev-critical-bg: color-mix(in srgb, var(--bad) 22%, #fff);
-  --sev-high-bg:     color-mix(in srgb, var(--bad) 14%, #fff);
-  --sev-medium-bg:   color-mix(in srgb, var(--warn) 18%, #fff);
-  --sev-low-bg:      #eef2f7;
-  --sev-info-bg:     color-mix(in srgb, var(--info) 15%, #fff);
-
-  --sev-critical-fg: #7a0f0f;
-  --sev-high-fg:     #8a1b1b;
-  --sev-medium-fg:   #8a6b05;
-  --sev-low-fg:      #475569;
-  --sev-info-fg:     #0a6a8a;
-
-  --link:        var(--brand);
-  --link-hover:  color-mix(in srgb, var(--brand) 85%, #000);
-}
-
-/* ---------- Midnight Dark ------------------------------------------------ */
+/* ---------- Dark --------------------------------------------------------- */
 :root[data-theme="dark"],
 body[data-theme="dark"] {
-  --bg: #0b1220;
-  --bg-alt: #0f172a;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
+  --bg: #0c1629;
+  --bg-alt: #111d33;
+  --text: #dbe8ff;
+  --muted: #91a4c1;
 
-  --brand: #60a5fa;
-  --brand-contrast: #0b1220;
-  --brand-secondary: #a855f7;
+  --brand: #5b8ff5;
+  --brand-contrast: #0c1629;
+  --brand-secondary: #74a0ff;
 
-  --surface: #0f172a;
-  --surface-2: #111827;
-  --panel-bg: rgba(15, 23, 42, .92);
-  --panel-border: rgba(148, 163, 184, .25);
-  --border: #1f2937;
+  --surface: #111d33;
+  --surface-2: #1a273d;
+  --surface-hover: #1d2a43;
+  --panel-bg: #15223a;
+  --panel-border: #1f3352;
+  --border: #1f3352;
+
+  --nav-active-bg: #1f2f4a;
+  --nav-active-border: #4d74c7;
+  --button-hover: #1d2b41;
+  --table-row-hover: #1f314c;
+  --table-row-bad: rgba(248, 113, 113, 0.2);
+  --table-row-warn: rgba(251, 191, 36, 0.2);
+  --table-row-info: rgba(56, 189, 248, 0.24);
 
   --ok:   #34d399;
   --warn: #fbbf24;
   --bad:  #f87171;
   --info: #38bdf8;
 
-  --glow-soft: 0 14px 28px rgba(59, 130, 246, .18);
-  --glow-strong: 0 24px 48px rgba(124, 58, 237, .2);
-  --grid-line: rgba(148, 163, 184, 0.14);
-  --scanline: rgba(56, 189, 248, 0.08);
+  --glow-soft: none;
+  --glow-strong: none;
+  --grid-line: rgba(148, 163, 184, 0.12);
+  --scanline: rgba(30, 41, 59, 0.28);
 
-  --radius: 14px;
-  --radius-sm: 9px;
-  --shadow: 0 18px 40px rgba(15, 23, 42, .55);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 8px 18px rgba(3, 10, 22, 0.55);
 
-  --sev-critical-bg: color-mix(in srgb, var(--bad) 28%, #0b1220);
-  --sev-high-bg:     color-mix(in srgb, var(--bad) 20%, #0b1220);
-  --sev-medium-bg:   color-mix(in srgb, var(--warn) 22%, #0b1220);
-  --sev-low-bg:      #111827;
-  --sev-info-bg:     color-mix(in srgb, var(--info) 22%, #0b1220);
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .85rem;
+  --space-4: 1.1rem;
+  --space-5: 1.75rem;
+  --space-6: 2.5rem;
+
+  --sev-critical-bg: rgba(248, 113, 113, 0.16);
+  --sev-high-bg:     rgba(248, 113, 113, 0.12);
+  --sev-medium-bg:   rgba(251, 191, 36, 0.12);
+  --sev-low-bg:      rgba(96, 165, 250, 0.12);
+  --sev-info-bg:     rgba(56, 189, 248, 0.14);
 
   --sev-critical-fg: #fecaca;
   --sev-high-fg:     #fecaca;
   --sev-medium-fg:   #fde68a;
-  --sev-low-fg:      #cbd5e1;
+  --sev-low-fg:      #bfdbfe;
   --sev-info-fg:     #bae6fd;
 
   --link:       #93c5fd;
   --link-hover: #bfdbfe;
 }
-
-/* ---------- High-Contrast Theme ------------------------------------------ */
-:root[data-theme="hc"],
-body[data-theme="hc"] {
-  --bg: #ffffff;
-  --bg-alt: #ffffff;
-  --text: #000000;
-  --muted: #333333;
-
-  --brand: #0000ee;
-  --brand-contrast: #ffffff;
-  --brand-secondary: #5a00ee;
-
-  --surface: #ffffff;
-  --surface-2: #f2f2f2;
-  --panel-bg: #ffffff;
-  --panel-border: #000000;
-  --border: #000000;
-
-  --glow-soft: none;
-  --glow-strong: none;
-  --grid-line: rgba(0, 0, 0, 0.08);
-  --scanline: rgba(0, 0, 0, 0.05);
-
-  --radius: 0;
-  --radius-sm: 0;
-  --shadow: none;
-
-  --ok:   #008000;
-  --warn: #b8860b;
-  --bad:  #8b0000;
-  --info: #004b8d;
-
-  --sev-critical-bg: #ffcccc;
-  --sev-high-bg:     #ffd6d6;
-  --sev-medium-bg:   #ffe9b3;
-  --sev-low-bg:      #eeeeee;
-  --sev-info-bg:     #cfefff;
-
-  --sev-critical-fg: #4d0000;
-  --sev-high-fg:     #660000;
-  --sev-medium-fg:   #5c4a00;
-  --sev-low-fg:      #111111;
-  --sev-info-fg:     #003a66;
-
-  --link:       #0000ee;
-  --link-hover: #0000aa;
-}
-

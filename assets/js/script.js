@@ -2,11 +2,11 @@
   const root = document.documentElement;
   const body = document.body;
   const THEME_KEY = 'scytaledroid-theme';
-  const THEMES = ['tron', 'classic', 'dark'];
+  const THEMES = ['light', 'dark'];
 
   const themeToggle = document.querySelector('[data-theme-toggle]');
 
-  const normalizeTheme = (value) => (THEMES.includes(value) ? value : 'tron');
+  const normalizeTheme = (value) => (THEMES.includes(value) ? value : 'light');
 
   const setTheme = (theme) => {
     const next = normalizeTheme(theme);
@@ -21,7 +21,7 @@
     }
   };
 
-  const storedTheme = window.localStorage.getItem(THEME_KEY) || 'tron';
+  const storedTheme = window.localStorage.getItem(THEME_KEY) || 'light';
   setTheme(storedTheme);
 
   if (themeToggle) {

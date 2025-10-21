@@ -13,8 +13,7 @@ require_once __DIR__ . '/render.php';
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/main_style.css">
 </head>
 
-<body data-theme="tron">
-  <div class="backdrop-gradient" aria-hidden="true"></div>
+<body data-theme="light">
   <div class="app-shell" data-shell>
     <aside class="sidebar" id="sidebar-nav" data-sidebar aria-label="Primary navigation" aria-hidden="false">
       <?php require __DIR__ . '/sidebar_navigation.php'; ?>
@@ -27,15 +26,14 @@ require_once __DIR__ . '/render.php';
             <span aria-hidden="true">☰</span>
           </button>
           <div class="brand">
-            <span class="brand-mark">SD</span>
             <span class="brand-name"><?= e(APP_NAME ?? 'ScytaleDroid') ?></span>
           </div>
         </div>
         <div class="topbar-actions">
           <span class="topbar-chip" data-sidebar-state>Sidebar: Expanded</span>
-          <button type="button" class="btn-ghost" data-theme-toggle>
+          <button type="button" class="btn-ghost" data-theme-toggle data-theme-current="light">
             <span class="visually-hidden">Toggle visual theme</span>
-            <span aria-hidden="true">Switch Theme</span>
+            <span aria-hidden="true">Theme: Light</span>
           </button>
         </div>
       </header>
