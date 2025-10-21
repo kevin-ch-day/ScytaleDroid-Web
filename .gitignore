@@ -1,14 +1,31 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# PHP / Composer
+vendor/
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Archives & installers
 *.tar
 *.tar.*
+*.zip
+*.tgz
+*.gz
 *.jar
 *.exe
 *.msi
 *.deb
-*.zip
-*.tgz
+
+# Logs
 *.log
 *.log.*
-*.sig
 
+# Legacy build outputs
 pkg/
 src/

@@ -8,43 +8,50 @@
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(25,245,255,.18);
   border-radius: var(--radius);
-  background: #fff;
+  background: rgba(4,16,34,.65);
+  box-shadow: inset 0 0 24px rgba(25,245,255,.08);
+  backdrop-filter: blur(6px);
 }
 
 /* Base table */
 table.table{
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: transparent;
   border-radius: var(--radius);
   overflow: hidden;
+  color: var(--text);
 }
 
 .table th,
 .table td{
   text-align: left;
-  padding: .65rem .75rem;
-  border-bottom: 1px solid var(--border);
+  padding: .75rem .85rem;
+  border-bottom: 1px solid rgba(25,245,255,.14);
   vertical-align: top;
+  position: relative;
 }
 
 .table th{
-  background: var(--surface-2);
+  background: linear-gradient(180deg, rgba(25,245,255,.18), rgba(5,17,36,.65));
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .08em;
 }
 
 /* Striped rows */
 .table-striped tbody tr:nth-child(even){
-  background: var(--surface);
+  background: rgba(4, 20, 42, 0.48);
 }
 
 /* Hover state */
 .table-hover tbody tr:hover{
-  background: color-mix(in srgb, var(--brand) 6%, #fff);
+  background: rgba(25,245,255,.14);
+  box-shadow: inset 0 0 18px rgba(25,245,255,.18);
 }
 
 /* Compact density variant */
@@ -171,24 +178,75 @@ tr.is-info   { background: color-mix(in srgb, var(--info) 6%,  #fff); }
 
 /* Pagination */
 .pager{
-  display:flex; gap:.5rem; align-items:center; justify-content:flex-end; margin-top: .75rem;
+  display:flex;
+  gap:.6rem;
+  align-items:center;
+  justify-content:flex-end;
+  margin-top: .75rem;
 }
+
 .pager .page,
 .pager .prev,
 .pager .next{
-  display:inline-flex; align-items:center; justify-content:center;
-  min-width: 2.2rem; height: 2.2rem;
-  padding: 0 .6rem;
-  border:1px solid var(--border);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 .75rem;
+  border:1px solid rgba(25,245,255,.35);
   border-radius: var(--radius-sm);
-  background:#fff; color:var(--text);
-  text-decoration:none; font-weight:600; font-size:.95rem;
+  background: rgba(5,20,42,.78);
+  color:var(--text);
+  text-decoration:none;
+  font-weight:600;
+  font-size:.95rem;
+  transition: transform .12s ease, box-shadow .18s ease;
 }
+
+.pager .page:hover,
+.pager .prev:hover,
+.pager .next:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(25,245,255,.28);
+}
+
 .pager .active{
-  background: var(--brand); border-color: var(--brand); color: var(--brand-contrast);
+  background: linear-gradient(135deg, rgba(25,245,255,.55), rgba(122,92,255,.65));
+  border-color: rgba(25,245,255,.65);
+  color: var(--brand-contrast);
 }
+
 .pager .disabled{
-  opacity:.5; pointer-events:none;
+  opacity:.45;
+  pointer-events:none;
+}
+
+.copy-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.4ch;
+  padding:.35rem .6rem;
+  border-radius: var(--radius-sm);
+  border:1px solid rgba(25,245,255,.25);
+  background: rgba(5,20,45,.6);
+  color: var(--muted);
+  font-size:.75rem;
+  text-transform: uppercase;
+  letter-spacing:.05em;
+  cursor:pointer;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.copy-btn:hover{
+  background: rgba(25,245,255,.15);
+  color: var(--text);
+  border-color: rgba(25,245,255,.45);
+}
+
+.copy-btn.is-copied{
+  color: var(--brand);
+  border-color: rgba(25,245,255,.65);
 }
 
 /* Caption and meta row */
