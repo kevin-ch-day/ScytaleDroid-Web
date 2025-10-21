@@ -1,8 +1,12 @@
 <?php
-// Compute the base URL of this project (works in subdirs like /ScytaleDroid-Web)
-$base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
-$target = $base . '/pages/index.php';
+// /var/www/html/ScytaleDroid-Web/index.php
+require_once __DIR__ . '/config/config.php';
 
-// Do a 302 redirect to the pages landing
-header('Location: ' . $target, true, 302);
+$targetPath = rtrim(BASE_URL, '/') . '/pages/index.php';
+
+// build absolute Location (prevents any relative resolution weirdness)
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+header('Location: ' . $scheme . '://' . $host . $targetPath, true, 302);
 exit;
