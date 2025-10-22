@@ -1,10 +1,8 @@
+@charset "UTF-8";
 /* =======================================================
    ScytaleDroid — Main Styles
    Simplified layout that leans on light/dark tokens.
    ======================================================= */
-@import url("theme_style.css");
-@import url("table_style.css");
-@import url("sidebar_nav.css");
 
 /* ---------- Base ---------- */
 *,
@@ -282,5 +280,49 @@ code {
 
   .container {
     padding: 0 var(--space-3) var(--space-6);
+  }
+}
+
+:where(a, button, .btn-ghost, .sidebar-link):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header,
+  .panel-body,
+  .panel-footer,
+  .topbar {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+
+  .table .btn-cell {
+    padding: .3rem .5rem;
+    font-size: .82rem;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .sidebar,
+  .topbar {
+    display: none !important;
+  }
+
+  .container {
+    max-width: none;
+    padding: 0;
   }
 }

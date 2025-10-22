@@ -23,7 +23,10 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
     <link rel="canonical" href="<?= e(abs_url(ltrim($_SERVER['REQUEST_URI'] ?? 'pages/index.php', '/'))) ?>">
     <meta name="theme-color" content="#0e1116">
 
-    <!-- Main stylesheet (cache-busted via APP_VERSION) -->
+    <!-- Stylesheets (cache-busted via APP_VERSION) -->
+    <link rel="stylesheet" href="<?= e(asset_url('css/theme_style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('css/table_style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('css/sidebar_nav.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset_url('css/main_style.css')) ?>">
 
     <!-- No-JS fallback keeps nav visible -->
