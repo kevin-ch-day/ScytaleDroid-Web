@@ -68,7 +68,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   transition: transform .25s ease, opacity .25s ease;
-  z-index: 2;
+  z-index: 2; /* base layer; mobile overlay lifts to 12 */
 }
 
 .sidebar-header {
@@ -216,7 +216,7 @@
     transform: translateX(calc(-100% - var(--space-5)));
     opacity: 0;
     pointer-events: none;
-    z-index: 12;
+    z-index: 12; /* sits above overlay backdrop */
   }
 
   .app-shell.is-sidebar-open .sidebar {
@@ -231,7 +231,7 @@
     inset: 0;
     background: rgba(15, 23, 42, 0.55);
     backdrop-filter: blur(1px);
-    z-index: 11;
+    z-index: 11; /* overlay backdrop under the sidebar */
   }
 }
 

@@ -44,6 +44,10 @@ table.table {
   background: var(--table-row-hover);
 }
 
+body[data-theme="dark"] .table-hover tbody tr:hover {
+  background: color-mix(in oklab, var(--table-row-hover), #000 10%);
+}
+
 .table-compact th,
 .table-compact td {
   padding: .6rem .75rem;
@@ -81,7 +85,8 @@ th.col-center {
 .table-sticky thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
+  background: var(--surface-2);
   box-shadow: 0 1px 0 var(--border);
 }
 
