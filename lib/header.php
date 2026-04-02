@@ -7,6 +7,8 @@ require_once __DIR__ . '/render.php';
 $__title = isset($PAGE_TITLE) && $PAGE_TITLE !== ''
     ? $PAGE_TITLE . ' — ' . APP_NAME
     : APP_NAME;
+$__requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: url('pages/index.php');
+$__canonical = APP_ORIGIN . $__requestPath;
 
 // Resolve sidebar partial (don’t fatal if missing)
 $__sidebar = __DIR__ . '/sidebar_navigation.php';
@@ -20,7 +22,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
     <title><?= e($__title) ?></title>
 
     <!-- Canonical + theme color (nice-to-have) -->
-    <link rel="canonical" href="<?= e(abs_url(ltrim($_SERVER['REQUEST_URI'] ?? 'pages/index.php', '/'))) ?>">
+    <link rel="canonical" href="<?= e($__canonical) ?>">
     <meta name="theme-color" content="#0e1116">
 
     <!-- Stylesheets (cache-busted via APP_VERSION) -->
@@ -28,6 +30,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
     <link rel="stylesheet" href="<?= e(asset_url('css/table_style.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset_url('css/sidebar_nav.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset_url('css/main_style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('css/components.css')) ?>">
 
     <!-- No-JS fallback keeps nav visible -->
     <noscript>

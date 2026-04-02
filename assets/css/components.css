@@ -1,0 +1,283 @@
+/* =======================================================
+   Component Layer
+   Shared UI primitives for filters, metrics, and detail pages.
+   Kept separate from layout/tokens so page components can evolve
+   without turning main_style.css into another catch-all file.
+   ======================================================= */
+
+/* ---------- Accessibility ---------- */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ---------- Utilities ---------- */
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-2 {
+  gap: .5rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.p-4 {
+  padding: var(--space-4);
+}
+
+/* ---------- Buttons ---------- */
+.btn,
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 2.6rem;
+  padding: .55rem 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform .12s ease;
+}
+
+.btn:hover,
+.copy-btn:hover {
+  background: var(--button-hover);
+  border-color: var(--nav-active-border);
+  text-decoration: none;
+}
+
+.btn:active,
+.copy-btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled,
+.btn[disabled],
+.copy-btn:disabled,
+.copy-btn[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-contrast);
+}
+
+.btn-primary:hover {
+  background: var(--brand-secondary);
+  border-color: var(--brand-secondary);
+  color: var(--brand-contrast);
+}
+
+.copy-btn {
+  min-height: auto;
+  padding: .35rem .65rem;
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+.copy-btn.is-copied {
+  background: color-mix(in oklab, var(--ok) 18%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--ok) 35%, var(--panel-border));
+  color: var(--ok);
+}
+
+/* ---------- Forms ---------- */
+.form-row {
+  display: grid;
+  grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1.2fr) minmax(8rem, .8fr) auto auto;
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+.form-row input[type="search"],
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .65rem .85rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+.form-row input::placeholder,
+.form-row textarea::placeholder {
+  color: var(--muted);
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  border-color: var(--nav-active-border);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 18%, transparent);
+  outline: none;
+}
+
+/* ---------- Metrics / Summary Cards ---------- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.metric-card {
+  display: grid;
+  gap: .55rem;
+  min-height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 70%, var(--surface-2)) 0%, var(--surface) 100%);
+}
+
+.metric-card p:last-child {
+  margin-bottom: 0;
+}
+
+.metric-label {
+  display: block;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  display: block;
+  color: var(--text);
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.metric-value.bad {
+  color: var(--bad);
+}
+
+.metric-value.warn {
+  color: var(--warn);
+}
+
+.metric-value.info {
+  color: var(--info);
+}
+
+/* ---------- Detail Header ---------- */
+.detail-hero .panel-header {
+  align-items: flex-start;
+}
+
+.detail-hero .panel-title {
+  font-size: 1.35rem;
+}
+
+.detail-hero .panel-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.detail-hero .panel-subtitle strong,
+.js-package {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.js-package {
+  font-size: .9rem;
+}
+
+/* ---------- Table / Page Captions ---------- */
+.table-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---------- Small Status Chips ---------- */
+.chip-density {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .45rem .8rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-row .btn,
+  .form-row .btn-ghost {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-hero .panel-actions {
+    width: 100%;
+  }
+
+  .table-caption {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+}

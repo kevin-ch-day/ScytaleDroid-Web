@@ -9,7 +9,7 @@ require_once __DIR__ . '/render.php';
       </div> <!-- /.container -->
     </div> <!-- /.app-main -->
   </div> <!-- /.app-shell -->
-  <script src="<?= BASE_URL ?>/assets/js/script.js" defer></script>
+  <script src="<?= e(asset_url('js/script.js')) ?>" defer></script>
 </body>
 
 </html>

@@ -1,34 +1,37 @@
 <?php
 // database/db_lib/db_utils.php
+declare(strict_types=1);
+
 require_once __DIR__ . '/../db_core/db_engine.php';
 
 /**
  * Bind parameters on a prepared PDO statement (named or positional).
- * - For named keys, we normalize to ":name".
- * - Types: NULL/BOOL/INT -> correct PDO type; everything else -> STR.
+ * - Positional: 0-based index in $params -> 1-based placeholder.
+ * - Named: normalizes keys to ':name'.
+ * - Types: NULL/BOOL/INT mapped to PDO types; everything else -> STR.
  *
- * @param PDOStatement $st
+ * @param \PDOStatement $st
  * @param array<int|string,mixed> $params
  */
-function _db_bind_params(PDOStatement $st, array $params): void
+function _db_bind_params(\PDOStatement $st, array $params): void
 {
     foreach ($params as $k => $v) {
-        // positional: 0-based array index maps to 1-based placeholder
+        // positional (0,1,2,...) -> (1,2,3,...)
         if (is_int($k)) {
             $name = $k + 1;
         } else {
-            // normalize to named (":name"), without relying on str_starts_with
+            // normalize to named (e.g., ':q')
             $name = ':' . ltrim((string)$k, ':');
         }
 
         if ($v === null) {
-            $type = PDO::PARAM_NULL;
+            $type = \PDO::PARAM_NULL;
         } elseif (is_bool($v)) {
-            $type = PDO::PARAM_BOOL;
+            $type = \PDO::PARAM_BOOL;
         } elseif (is_int($v)) {
-            $type = PDO::PARAM_INT;
+            $type = \PDO::PARAM_INT;
         } else {
-            $type = PDO::PARAM_STR;
+            $type = \PDO::PARAM_STR;
         }
 
         $st->bindValue($name, $v, $type);
@@ -36,7 +39,7 @@ function _db_bind_params(PDOStatement $st, array $params): void
 }
 
 /**
- * Prepare and execute a SELECT, returning all rows.
+ * Prepare and execute a SELECT, returning all rows (assoc).
  *
  * @param string $sql
  * @param array<int|string,mixed> $params
@@ -47,7 +50,9 @@ function db_all(string $sql, array $params = []): array
     $st = db()->prepare($sql);
     _db_bind_params($st, $params);
     $st->execute();
-    return $st->fetchAll();
+    /** @var array<int,array<string,mixed>> $rows */
+    $rows = $st->fetchAll();
+    return $rows ?: [];
 }
 
 /**
@@ -59,8 +64,12 @@ function db_all(string $sql, array $params = []): array
  */
 function db_one(string $sql, array $params = []): ?array
 {
-    $rows = db_all($sql, $params);
-    return $rows[0] ?? null;
+    $st = db()->prepare($sql);
+    _db_bind_params($st, $params);
+    $st->execute();
+    /** @var array<string,mixed>|false $row */
+    $row = $st->fetch();
+    return $row === false ? null : $row;
 }
 
 /**
@@ -74,13 +83,28 @@ function db_one(string $sql, array $params = []): ?array
 function db_col(string $sql, array $params = [], $col = 0)
 {
     $row = db_one($sql, $params);
-    if ($row === null) return null;
+    if ($row === null) {
+        return null;
+    }
+
     if (is_int($col)) {
-        // convert assoc to numeric order reliably
+        // If driver returns assoc only, convert to numeric order
         $vals = array_values($row);
         return $vals[$col] ?? null;
     }
-    return $row[$col] ?? null;
+
+    // Named column
+    if (array_key_exists($col, $row)) {
+        return $row[$col];
+    }
+
+    // Fallback: case-insensitive lookup (some drivers normalize case)
+    foreach ($row as $k => $v) {
+        if (strcasecmp((string)$k, (string)$col) === 0) {
+            return $v;
+        }
+    }
+    return null;
 }
 
 /**
@@ -106,10 +130,11 @@ function db_exec(string $sql, array $params = []): int
  */
 function page_resolve(array $q): array
 {
-    $sizes   = defined('PAGE_SIZES') ? PAGE_SIZES : [25, 50, 100];
-    $default = defined('DEFAULT_PAGE_SIZE') ? DEFAULT_PAGE_SIZE : 25;
+    $sizes   = defined('PAGE_SIZES') ? (array)PAGE_SIZES : [25, 50, 100];
+    $default = defined('DEFAULT_PAGE_SIZE') ? (int)DEFAULT_PAGE_SIZE : 25;
 
-    $size = isset($q['size']) && in_array((int)$q['size'], $sizes, true) ? (int)$q['size'] : $default;
+    $reqSize = isset($q['size']) ? (int)$q['size'] : $default;
+    $size = in_array($reqSize, $sizes, true) ? $reqSize : $default;
     // hard cap to avoid accidental huge scans
     $size = max(1, min($size, 500));
 
@@ -122,8 +147,19 @@ function page_resolve(array $q): array
 /**
  * Build a WHERE clause and parameter map from user-provided filters.
  *
- * @param array<string,mixed> $filters Filter values (usually guarded request input).
- * @param array<string,array{0:string,1?:callable(mixed):mixed}> $map Map of key => [SQL, transform?].
+ * Map format: key => [ "sql with :named params", optional_transform_callable ]
+ *
+ * Example:
+ *   [$where,$p] = sql_filters(
+ *     ['category'=>$cat,'q'=>$q],
+ *     [
+ *       'category' => ['cat.category = :category'],
+ *       'q'        => ['(a.package_name LIKE :q OR COALESCE(ad.app_label,a.app_label) LIKE :q)', fn($v)=>"%$v%"]
+ *     ]
+ *   );
+ *
+ * @param array<string,mixed> $filters
+ * @param array<string,array{0:string,1?:callable(mixed):mixed}> $map
  * @return array{0:string,1:array<string,mixed>} [whereSql, params]
  */
 function sql_filters(array $filters, array $map): array
@@ -132,13 +168,19 @@ function sql_filters(array $filters, array $map): array
     $params  = [];
 
     foreach ($map as $key => $tpl) {
-        if (!array_key_exists($key, $filters)) continue;
+        if (!array_key_exists($key, $filters)) {
+            continue;
+        }
         $val = $filters[$key];
-        if ($val === '' || $val === null) continue;
+        if ($val === '' || $val === null) {
+            continue;
+        }
 
         $sql = $tpl[0] ?? '';
+        if ($sql === '') {
+            continue; // guard malformed map entries
+        }
         $xf  = $tpl[1] ?? null;
-        if ($sql === '') continue;
 
         if (is_callable($xf)) {
             $val = $xf($val);
@@ -146,7 +188,7 @@ function sql_filters(array $filters, array $map): array
 
         $clauses[] = $sql;
 
-        // support one or more named params in the clause; assign same value to each
+        // Support one or more named params in the clause; assign same value to each occurrence
         if (preg_match_all('/:(\w+)/', $sql, $m)) {
             foreach ($m[1] as $pname) {
                 $params[$pname] = $val;
@@ -165,23 +207,29 @@ function sql_filters(array $filters, array $map): array
  * @param string              $baseSql  SELECT (no WHERE/LIMIT).
  * @param string              $countSql COUNT(*) to match base joins.
  * @param string              $where    WHERE built by sql_filters().
- * @param string              $orderBy  ORDER BY for deterministic paging.
+ * @param string              $orderBy  ORDER BY for deterministic paging (from code, not user).
  * @param array<string,mixed> $params   Params from sql_filters().
  * @param int                 $page     1-indexed page number.
  * @param int                 $size     Page size.
- * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
+ * @return array{rows:array<int,array<string,mixed>>, total:int, page:int, size:int}
  */
 function db_paged(string $baseSql, string $countSql, string $where, string $orderBy, array $params, int $page, int $size): array
 {
-    // compute safe integers
+    // validate numbers
     $size   = max(1, (int)$size);
-    $offset = max(0, ((int)$page - 1) * $size);
+    $page   = max(1, (int)$page);
+    $offset = ($page - 1) * $size;
 
-    // inline LIMIT/OFFSET as integers (no binding!)
+    // Inline LIMIT/OFFSET (never bind these in MySQL)
     $limitSql = trim($orderBy) . " LIMIT $size OFFSET $offset";
 
-    $rows = db_all("$baseSql $where $limitSql", $params);
+    $rows  = db_all("$baseSql $where $limitSql", $params);
     $total = (int)(db_col("$countSql $where", $params, 'c') ?? 0);
 
-    return ['rows' => $rows, 'total' => $total, 'page' => (int)$page, 'size' => $size];
+    return [
+        'rows'  => $rows,
+        'total' => $total,
+        'page'  => $page,
+        'size'  => $size,
+    ];
 }

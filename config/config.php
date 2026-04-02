@@ -4,7 +4,7 @@
 // ── App identity ───────────────────────────────────────────────────────────────
 if (!defined('APP_NAME')) define('APP_NAME', 'ScytaleDroid');
 // Optional: app version for cache-busting (edit when you ship UI changes)
-if (!defined('APP_VERSION')) define('APP_VERSION', '0.1.0');
+if (!defined('APP_VERSION')) define('APP_VERSION', '0.2.0');
 
 // ── Base URL (subdirectory) ───────────────────────────────────────────────────
 // Options (precedence):
@@ -13,7 +13,7 @@ if (!defined('APP_VERSION')) define('APP_VERSION', '0.1.0');
 // 3) Auto-detect from SCRIPT_NAME (default)
 $ENV_BASE = getenv('SD_BASE_URL') ?: null;
 // Set to null to auto-detect; set to '' for web root; set to '/ScytaleDroid-Web' for fixed subdir.
-$MANUAL_BASE = '/ScytaleDroid-Web';
+$MANUAL_BASE = null;
 
 if (!defined('BASE_URL')) {
     $base = $ENV_BASE;
@@ -24,6 +24,12 @@ if (!defined('BASE_URL')) {
         // Auto-detect from SCRIPT_NAME, but be CLI-safe
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? ($_SERVER['PHP_SELF'] ?? '');
         $dir = $scriptName !== '' ? rtrim(str_replace('\\', '/', dirname($scriptName)), '/') : '';
+        foreach (['/pages', '/assets', '/lib', '/config'] as $suffix) {
+            if ($dir !== '' && str_ends_with($dir, $suffix)) {
+                $dir = substr($dir, 0, -strlen($suffix));
+                break;
+            }
+        }
         // Normalize ".", "/" -> '' (root)
         if ($dir === '.' || $dir === '/') $dir = '';
         $base = $dir;

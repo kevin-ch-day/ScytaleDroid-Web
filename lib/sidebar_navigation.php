@@ -4,22 +4,22 @@
 $navItems = [
   [
     'label' => 'Apps Directory',
-    'href' => BASE_URL . '/pages/index.php',
+    'href' => url('pages/index.php'),
     'desc' => 'Browse latest snapshots by package',
     'match' => [
-      BASE_URL . '/pages/index.php',
+      url('pages/index.php'),
       '/pages/index.php',
     ],
   ],
   [
     'label' => 'App Detail',
-    'href' => BASE_URL . '/pages/view_app.php',
+    'href' => url('pages/view_app.php'),
     'desc' => 'Drill into a package and session',
     'match' => [
-      BASE_URL . '/pages/view_app.php',
-      BASE_URL . '/pages/app_findings.php',
-      BASE_URL . '/pages/app_strings.php',
-      BASE_URL . '/pages/app_permissions.php',
+      url('pages/view_app.php'),
+      url('pages/app_findings.php'),
+      url('pages/app_strings.php'),
+      url('pages/app_permissions.php'),
       '/pages/view_app.php',
       '/pages/app_findings.php',
       '/pages/app_strings.php',
@@ -28,17 +28,17 @@ $navItems = [
   ],
   [
     'label' => 'About',
-    'href' => BASE_URL . '/pages/about.php',
+    'href' => url('pages/about.php'),
     'desc' => 'Project overview and documentation',
     'match' => [
-      BASE_URL . '/pages/about.php',
+      url('pages/about.php'),
       '/pages/about.php',
     ],
   ],
 ];
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-$readmeUrl   = BASE_URL . '/README.md';
+$readmeUrl   = url('README.md');
 ?>
 <div class="sidebar-header">
   <div class="sidebar-brand">
@@ -80,4 +80,3 @@ $readmeUrl   = BASE_URL . '/README.md';
   <a href="<?= e($readmeUrl) ?>" target="_blank" rel="noopener">Project README</a>
   <small>Runs best with a read-only database user and the shipped PDO config.</small>
 </div>
-

@@ -61,7 +61,7 @@
             <?php foreach ($rows as $r): ?>
               <?php
               $pkg = $r['package_name'] ?? '';
-              $viewUrl = $pkg ? BASE_URL . '/pages/view_app.php?pkg=' . urlencode($pkg) : null;
+              $viewUrl = $pkg ? url('pages/view_app.php') . '?pkg=' . urlencode($pkg) : null;
               $hml = fmt_hml($r['high'] ?? 0, $r['med'] ?? 0, $r['low'] ?? 0);
               ?>
               <tr>

@@ -43,3 +43,21 @@ function guard_category(?string $c): ?string
     if (!preg_match('/^[\w\s\-\/.]{1,64}$/u', $c)) return null;
     return $c;
 }
+
+/** Package names are dot/underscore/hyphen heavy and should stay bounded. */
+function guard_package_name(?string $pkg): ?string
+{
+    $pkg = guard_str($pkg);
+    if ($pkg === null) return null;
+    if (!preg_match('/^[A-Za-z0-9._:-]{1,255}$/', $pkg)) return null;
+    return $pkg;
+}
+
+/** Session stamps include timestamps, suffixes, and hyphens. */
+function guard_session(?string $session): ?string
+{
+    $session = guard_str($session);
+    if ($session === null) return null;
+    if (!preg_match('/^[A-Za-z0-9._:-]{1,128}$/', $session)) return null;
+    return $session;
+}

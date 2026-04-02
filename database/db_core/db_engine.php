@@ -16,6 +16,22 @@ function db_env(string $key): ?string
 }
 
 /**
+ * Return the first non-empty env value from a list of keys.
+ *
+ * @param array<int,string> $keys
+ */
+function db_env_first(array $keys): ?string
+{
+    foreach ($keys as $key) {
+        $value = db_env($key);
+        if ($value !== null && $value !== '') {
+            return $value;
+        }
+    }
+    return null;
+}
+
+/**
  * @param non-empty-string $constName
  */
 function db_config_value(string $constName, string $envKey): string
@@ -60,7 +76,13 @@ function db(): PDO
 
     $dsn = db_dsn();
     $user = db_config_value('DB_USER', 'SCYTALEDROID_DB_USER');
-    $pass = db_config_value('DB_PASS', 'SCYTALEDROID_DB_PASS');
+    $pass = db_env_first(['SCYTALEDROID_DB_PASS', 'SCYTALEDROID_DB_PASSWD']);
+    if ($pass === null) {
+        if (!defined('DB_PASS')) {
+            throw new RuntimeException('Database constant DB_PASS missing from configuration file.');
+        }
+        $pass = (string) constant('DB_PASS');
+    }
 
     try {
         $pdo = new PDO($dsn, $user, $pass, [

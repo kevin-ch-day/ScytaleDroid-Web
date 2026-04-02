@@ -2,9 +2,9 @@
 // lib/render.php
 
 /** HTML escape */
-function e(string $s): string
+function e($s): string
 {
-    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars((string)($s ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 /** Format timestamp (YYYY-MM-DD HH:MM) if present */
@@ -31,10 +31,33 @@ function fmt_hml(?int $h, ?int $m, ?int $l, ?int $i = null): string
 function grade_badge(?string $g): string
 {
     $g = strtoupper((string)$g);
-    $cls = 'badge-muted';
-    if ($g === 'A') $cls = 'badge-ok';
-    elseif ($g === 'B') $cls = 'badge-info';
-    elseif ($g === 'C') $cls = 'badge-warn';
-    elseif ($g === 'D' || $g === 'F') $cls = 'badge-bad';
-    return '<span class="badge ' . $cls . '">' . e($g ?: '-') . '</span>';
+    $tone = 'muted';
+    if ($g === 'A') $tone = 'info';
+    elseif ($g === 'B') $tone = 'low';
+    elseif ($g === 'C') $tone = 'medium';
+    elseif ($g === 'D' || $g === 'F') $tone = 'high';
+    return chip($g ?: '-', $tone);
+}
+
+/** Generic chip helper */
+function chip(string $label, string $tone = 'muted'): string
+{
+    $allowed = ['critical', 'high', 'medium', 'low', 'info', 'muted'];
+    $tone = in_array($tone, $allowed, true) ? $tone : 'muted';
+    return '<span class="chip chip-' . e($tone) . '">' . e($label) . '</span>';
+}
+
+/** Compact status badge for run state */
+function status_chip(?string $status): string
+{
+    $normalized = strtoupper(trim((string)$status));
+    $tone = 'muted';
+    if ($normalized === 'COMPLETED' || $normalized === 'SUCCESS') {
+        $tone = 'info';
+    } elseif ($normalized === 'FAILED') {
+        $tone = 'high';
+    } elseif ($normalized === 'RUNNING' || $normalized === 'STARTED') {
+        $tone = 'medium';
+    }
+    return chip($normalized !== '' ? $normalized : 'UNKNOWN', $tone);
 }
