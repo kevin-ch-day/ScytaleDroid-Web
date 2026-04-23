@@ -5,7 +5,7 @@ require_once __DIR__ . '/../lib/header.php';
 ?>
 
 <section class="section">
-  <div class="neon-panel">
+  <div class="panel">
     <div class="panel-header">
       <div>
         <h1 class="panel-title">Android Permissions Catalog</h1>

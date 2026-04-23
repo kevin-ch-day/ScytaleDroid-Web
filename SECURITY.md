@@ -13,7 +13,9 @@ We will acknowledge receipt within 2 business days and coordinate a fix timeline
 ## Scope & Expectations
 
 * The application is read-only and should run with a least-privilege database user (SELECT access only).
-* Update the credentials in `database/db_core/db_config.php` to suit your deployment and restrict them to read-only access. Rotate credentials regularly and avoid reusing the development defaults in production.
+* Prefer `SCYTALEDROID_DB_*` environment variables for credentials. Local `database/db_core/db_config.php` files are ignored by Git and should not be committed.
 * Production deployments should be fronted by HTTPS and configured with secure headers (e.g., `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`).
+* Do not serve the repository root without deny rules for `.git`, `config`, `database`, `lib`, and project docs. If Apache has `AllowOverride None`, `.htaccess` will not protect these paths; install equivalent vhost/server rules such as `deploy/apache/ScytaleDroid-Web.conf`.
+* `pages/diag.php` is localhost-only by default. Enable it remotely only during trusted maintenance by setting `SCYTALEDROID_WEB_ENABLE_DIAG=1`.
 
 Thank you for helping keep ScytaleDroid-Web secure.

@@ -29,7 +29,7 @@ require_once __DIR__ . '/../lib/header.php';
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
 <?php elseif ($packageName === null): ?>
-  <section class="section"><div class="neon-panel"><div class="panel-body"><p class="muted">Choose an app to inspect static findings.</p></div></div></section>
+  <section class="section"><div class="panel"><div class="panel-body"><p class="muted">Choose an app to inspect static findings.</p></div></div></section>
 <?php else: ?>
   <?php
   $activeTab = 'findings';
@@ -40,7 +40,7 @@ require_once __DIR__ . '/../lib/header.php';
   ?>
 
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Finding Summary</h2>
@@ -63,7 +63,7 @@ require_once __DIR__ . '/../lib/header.php';
   </section>
 
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Findings</h2>

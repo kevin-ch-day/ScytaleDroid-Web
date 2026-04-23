@@ -61,3 +61,12 @@ function guard_session(?string $session): ?string
     if (!preg_match('/^[A-Za-z0-9._:-]{1,128}$/', $session)) return null;
     return $session;
 }
+
+/** Dynamic run ids are UUIDs in current schemas, but keep the guard tolerant. */
+function guard_dynamic_run_id(?string $runId): ?string
+{
+    $runId = guard_str($runId);
+    if ($runId === null) return null;
+    if (!preg_match('/^[A-Za-z0-9._:-]{1,128}$/', $runId)) return null;
+    return $runId;
+}

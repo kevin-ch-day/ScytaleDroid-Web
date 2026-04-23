@@ -111,10 +111,15 @@
 /* ---------- Forms ---------- */
 .form-row {
   display: grid;
-  grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1.2fr) minmax(8rem, .8fr) auto auto;
+  grid-template-columns: minmax(14rem, 2fr) minmax(10rem, 1.2fr) minmax(7rem, .8fr) auto auto;
   gap: var(--space-3);
   align-items: end;
   margin-bottom: var(--space-4);
+  min-width: 0;
+}
+
+.form-row > * {
+  min-width: 0;
 }
 
 .form-row input[type="search"],
@@ -127,7 +132,7 @@
   padding: .65rem .85rem;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--text);
   font: inherit;
   transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
@@ -149,19 +154,21 @@
 /* ---------- Metrics / Summary Cards ---------- */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .metric-card {
   display: grid;
   gap: .55rem;
   min-height: 100%;
-  padding: var(--space-4);
+  min-width: 0;
+  padding: var(--space-3);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--surface) 70%, var(--surface-2)) 0%, var(--surface) 100%);
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 72%, var(--surface-2)) 0%, var(--surface) 100%);
 }
 
 .metric-card p:last-child {
@@ -266,6 +273,14 @@
 @media (max-width: 640px) {
   .form-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metrics-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chip-density {
+    display: none;
   }
 
   .detail-hero .panel-actions {

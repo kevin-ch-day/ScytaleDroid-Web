@@ -47,7 +47,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
     </noscript>
 </head>
 
-<body data-theme="light">
+<body data-theme="dark">
     <div class="app-shell" data-shell>
         <aside class="sidebar" id="sidebar-nav" data-sidebar aria-label="Primary navigation" aria-hidden="false">
             <?php if (is_file($__sidebar)) {
@@ -73,7 +73,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
 
                 <div class="topbar-actions">
                     <span class="topbar-chip" data-sidebar-state>Sidebar: Expanded</span>
-                    <button type="button" class="btn-ghost" data-theme-toggle data-theme-current="light">
+                    <button type="button" class="btn-ghost" data-theme-toggle data-theme-current="dark">
                         <span class="visually-hidden">Toggle visual theme</span>
                         <span aria-hidden="true">Switch Theme</span>
                     </button>

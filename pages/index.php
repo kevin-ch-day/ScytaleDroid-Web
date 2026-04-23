@@ -5,12 +5,12 @@ require_once __DIR__ . '/../lib/guards.php';
 require_once __DIR__ . '/../lib/render.php';
 require_once __DIR__ . '/../lib/pager.php';
 require_once __DIR__ . '/../database/db_lib/db_func.php';
-require_once __DIR__ . '/../database/db_lib/db_queries.php';
 
 // --- inputs
 $q        = guard_search($_GET['q'] ?? null);
 $category = guard_category($_GET['category'] ?? null);
 [$size, $offset, $page] = pager_from_query($_GET);
+$hasActiveFilters = $q !== null || $category !== null;
 
 // --- data (paginated)
 $rows = [];
@@ -23,8 +23,8 @@ try {
     $rows  = $pg['rows']  ?? [];
     $total = (int)($pg['total'] ?? 0);
 
-    if ($total === 0) {
-        $rawProbe = db_all(SQL_APPS_DIR_BASE . ' ' . SQL_APPS_DIR_ORDER . ' LIMIT 10');
+    if ($total === 0 && !$hasActiveFilters) {
+        $rawProbe = apps_directory_probe(10);
     }
 } catch (Throwable $e) {
     $errorMsg = 'DB error: ' . $e->getMessage();
@@ -43,8 +43,6 @@ foreach ($rows as $r) {
     $severityTotals['med']  += (int)($r['med']  ?? 0);
     $severityTotals['low']  += (int)($r['low']  ?? 0);
 }
-
-$hasActiveFilters = !empty($filtered);
 
 $PAGE_TITLE = 'Apps Directory';
 require_once __DIR__ . '/../lib/header.php';

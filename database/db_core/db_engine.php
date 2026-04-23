@@ -1,9 +1,8 @@
 <?php
 $configPath = __DIR__ . '/db_config.php';
-if (!file_exists($configPath)) {
-    throw new RuntimeException('Database config missing. Provide credentials in database/db_core/db_config.php.');
+if (file_exists($configPath)) {
+    require_once $configPath;
 }
-require_once $configPath;
 
 function db_env(string $key): ?string
 {
@@ -42,7 +41,9 @@ function db_config_value(string $constName, string $envKey): string
     }
 
     if (!defined($constName)) {
-        throw new RuntimeException("Database constant {$constName} missing from configuration file.");
+        throw new RuntimeException(
+            "Database setting {$constName} missing. Set {$envKey} or provide local database/db_core/db_config.php."
+        );
     }
 
     return (string) constant($constName);

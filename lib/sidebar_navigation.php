@@ -20,10 +20,23 @@ $navItems = [
       url('pages/app_findings.php'),
       url('pages/app_strings.php'),
       url('pages/app_permissions.php'),
+      url('pages/app_dynamic.php'),
+      url('pages/dynamic_run.php'),
       '/pages/view_app.php',
       '/pages/app_findings.php',
       '/pages/app_strings.php',
       '/pages/app_permissions.php',
+      '/pages/app_dynamic.php',
+      '/pages/dynamic_run.php',
+    ],
+  ],
+  [
+    'label' => 'Runtime Deviation',
+    'href' => url('pages/dynamic.php'),
+    'desc' => 'Review dynamic runs, features, and regimes',
+    'match' => [
+      url('pages/dynamic.php'),
+      '/pages/dynamic.php',
     ],
   ],
   [

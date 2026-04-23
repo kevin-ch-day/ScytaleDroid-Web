@@ -4,13 +4,34 @@ This application is read-only and expects a populated ScytaleDroid schema. Use t
 
 ## Required Tables / Views
 
+Static exposure and app-directory views:
+- `v_web_app_directory`
 - `permission_audit_apps`
 - `permission_audit_snapshots`
 - `android_app_categories`
-- `android_app_definitions`
+- `android_app_profiles`
+- `apps`
+- `app_versions`
 - `static_findings_summary`
-- `static_permission_risk` (for future permissions matrix)
-- `android_detected_permissions` / `android_vendor_permissions`
+- `static_findings`
+- `static_permission_matrix`
+- `static_string_summary`
+- `static_string_selected_samples`
+
+Runtime deviation views:
+- `v_web_runtime_run_index`
+- `v_web_runtime_run_detail`
+- `dynamic_sessions`
+- `dynamic_network_features`
+- `dynamic_network_indicators`
+- `dynamic_session_issues`
+- `analysis_cohorts`
+- `analysis_ml_app_phase_model_metrics`
+- `analysis_risk_regime_summary`
+
+Evidence/artifact views:
+- `v_current_artifact_registry`
+- `v_artifact_registry_integrity`
 
 ## Recommended Indexes
 
@@ -18,9 +39,14 @@ This application is read-only and expects a populated ScytaleDroid schema. Use t
 | --- | --- |
 | `permission_audit_apps` | `(package_name, snapshot_id)` |
 | `permission_audit_snapshots` | `(snapshot_id)` and `(snapshot_key)` |
-| `android_app_categories` | `(package_name)` |
-| `android_app_definitions` | `(package_name)` |
+| `apps` | `(package_name)` |
+| `android_app_categories` | `(category_id)` |
 | `static_findings_summary` | `(package_name, session_stamp)` |
+| `static_analysis_runs` | `(session_stamp, app_version_id)` |
+| `dynamic_sessions` | `(package_name, started_at_utc)` and `(dynamic_run_id)` |
+| `dynamic_network_features` | `(dynamic_run_id)` |
+| `dynamic_session_issues` | `(dynamic_run_id)` |
+| `analysis_risk_regime_summary` | `(package_name, created_at_utc)` |
 
 Adjust index names to match your organisation’s conventions.
 
@@ -32,7 +58,11 @@ Adjust index names to match your organisation’s conventions.
 
 ### Environment overrides
 
-If editing `database/db_core/db_config.php` is inconvenient for your environment, you can override any setting at runtime with environment variables before Apache/PHP start:
+The preferred deployment model is environment-based configuration. For local development, copy
+`database/db_core/db_config.example.php` to `database/db_core/db_config.php`; the local file is ignored
+by Git and should never contain production credentials.
+
+You can override any setting at runtime with environment variables before Apache/PHP start:
 
 | Variable | Purpose |
 | --- | --- |
@@ -49,26 +79,47 @@ Only set the values you need—anything unset falls back to the constants in `db
 
 ## Sanity Checks
 
-The directory queries assume `permission_audit_snapshots.snapshot_key` uses the pattern
-`perm-audit:app:<session_stamp>` so that the suffix matches `static_findings_summary.session_stamp`. If
-your pipeline emits a different key format, adjust `SQL_APPS_DIR_BASE` and `SQL_APPS_DIR_COUNT`
-accordingly.
+The preferred read contract is the `v_web_*` view set created by the CLI database
+bootstrap. These views keep app-directory and runtime-deviation reconstruction in
+the database instead of duplicating it in PHP.
 
 ```sql
--- Verify snapshot counts
-SELECT COUNT(*) FROM permission_audit_snapshots;
+-- Verify the web app-directory contract
+SELECT COUNT(*) FROM v_web_app_directory;
 
--- Ensure apps are linked to snapshots
-SELECT a.package_name, s.snapshot_key
-FROM permission_audit_apps a
-JOIN permission_audit_snapshots s ON s.snapshot_id = a.snapshot_id
+-- Ensure app rows include latest static/audit state
+SELECT package_name, app_label, grade, high, med, low, source_state
+FROM v_web_app_directory
 LIMIT 5;
 
--- Confirm findings summary exists
+-- Confirm static exposure summaries exist
 SELECT package_name, session_stamp, high, med, low
 FROM static_findings_summary
 ORDER BY updated_at DESC
 LIMIT 5;
+
+-- Confirm runtime deviation runs exist
+SELECT package_name, status, tier, started_at_utc, dynamic_run_id, feature_state, static_link_state
+FROM v_web_runtime_run_index
+ORDER BY started_at_utc DESC
+LIMIT 5;
+
+-- Confirm runtime deviation feature rows exist
+SELECT package_name, run_profile, interaction_level, packet_count, bytes_per_sec
+FROM dynamic_network_features
+ORDER BY updated_at DESC
+LIMIT 5;
+
+-- Confirm cross-analysis regime rows exist
+SELECT package_name, static_grade, dynamic_grade_if, final_regime_if
+FROM analysis_risk_regime_summary
+ORDER BY created_at_utc DESC
+LIMIT 5;
+
+-- Confirm artifact registry link health
+SELECT link_state, COUNT(*)
+FROM v_artifact_registry_integrity
+GROUP BY link_state;
 ```
 
 If any query returns zero rows, the UI will show empty states. Populate the data pipeline before rolling out ScytaleDroid-Web.

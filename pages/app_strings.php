@@ -29,7 +29,7 @@ require_once __DIR__ . '/../lib/header.php';
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
 <?php elseif ($packageName === null): ?>
-  <section class="section"><div class="neon-panel"><div class="panel-body"><p class="muted">Choose an app to explore persisted strings intelligence.</p></div></div></section>
+  <section class="section"><div class="panel"><div class="panel-body"><p class="muted">Choose an app to explore persisted strings intelligence.</p></div></div></section>
 <?php else: ?>
   <?php
   $activeTab = 'strings';
@@ -40,7 +40,7 @@ require_once __DIR__ . '/../lib/header.php';
   ?>
 
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">String Summary</h2>
@@ -65,7 +65,7 @@ require_once __DIR__ . '/../lib/header.php';
   </section>
 
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Selected Samples</h2>

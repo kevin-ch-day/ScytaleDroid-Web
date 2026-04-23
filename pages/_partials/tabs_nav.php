@@ -7,6 +7,7 @@ $tabBase = [
   'findings' => 'app_findings.php',
   'permissions' => 'app_permissions.php',
   'strings' => 'app_strings.php',
+  'dynamic' => 'app_dynamic.php',
 ];
 ?>
 
@@ -15,7 +16,7 @@ $tabBase = [
     <?php foreach ($tabBase as $tab => $file): ?>
       <?php
       $href = url('pages/' . $file) . '?pkg=' . urlencode($packageName);
-      if ($activeSession) {
+      if ($activeSession && $tab !== 'dynamic') {
           $href .= '&session=' . urlencode($activeSession);
       }
       $label = ucfirst($tab);

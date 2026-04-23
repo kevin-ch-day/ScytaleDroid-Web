@@ -11,7 +11,7 @@ $latestAudit = $app['last_scanned'] ?? null;
 ?>
 
 <section class="section detail-hero">
-  <div class="neon-panel">
+  <div class="panel">
     <div class="panel-header">
       <div>
         <h1 class="panel-title"><?= e($appLabel) ?></h1>

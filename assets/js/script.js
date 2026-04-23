@@ -6,7 +6,7 @@
 
   const themeToggle = document.querySelector('[data-theme-toggle]');
 
-  const normalizeTheme = (value) => (THEMES.includes(value) ? value : 'light');
+  const normalizeTheme = (value) => (THEMES.includes(value) ? value : 'dark');
 
   const setTheme = (theme) => {
     const next = normalizeTheme(theme);
@@ -21,7 +21,7 @@
     }
   };
 
-  const storedTheme = window.localStorage.getItem(THEME_KEY) || 'light';
+  const storedTheme = window.localStorage.getItem(THEME_KEY) || 'dark';
   setTheme(storedTheme);
 
   if (themeToggle) {

@@ -69,6 +69,31 @@ if (!ini_get('date.timezone')) {
     date_default_timezone_set('UTC');
 }
 
+// ── Security headers ─────────────────────────────────────────────────────────
+if (!function_exists('send_security_headers')) {
+    function send_security_headers(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('Referrer-Policy: same-origin');
+        header(
+            "Content-Security-Policy: "
+            . "default-src 'self'; "
+            . "script-src 'self'; "
+            . "style-src 'self' 'unsafe-inline'; "
+            . "object-src 'none'; "
+            . "base-uri 'self'; "
+            . "frame-ancestors 'self'; "
+            . "form-action 'self'"
+        );
+    }
+}
+send_security_headers();
+
 // ── URL helpers (lightweight) ─────────────────────────────────────────────────
 if (!function_exists('url')) {
     /** App-relative URL: url('pages/index.php') → /<base>/pages/index.php */

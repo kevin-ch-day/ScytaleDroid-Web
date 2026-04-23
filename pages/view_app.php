@@ -20,7 +20,7 @@ require_once __DIR__ . '/../lib/header.php';
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
 <?php elseif ($packageName === null): ?>
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-body">
         <h1>App Detail</h1>
         <p class="muted">Select an application from the directory to inspect overview, findings, permissions, and strings.</p>
@@ -37,7 +37,7 @@ require_once __DIR__ . '/../lib/header.php';
   ?>
 
   <section class="section detail-grid">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Latest Overview</h2>
@@ -74,7 +74,7 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
     </div>
 
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Build Metadata</h2>
@@ -96,7 +96,7 @@ require_once __DIR__ . '/../lib/header.php';
 
   <?php if ($activeSessionRow): ?>
     <section class="section">
-      <div class="neon-panel">
+      <div class="panel">
         <div class="panel-header">
           <div>
             <h2 class="panel-title">Active Session Snapshot</h2>

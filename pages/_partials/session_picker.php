@@ -6,7 +6,7 @@
 
 <?php if (!empty($sessions)): ?>
   <section class="section">
-    <div class="neon-panel">
+    <div class="panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Sessions</h2>

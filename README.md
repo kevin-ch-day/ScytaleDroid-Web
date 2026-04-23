@@ -1,10 +1,11 @@
-# ScytaleDroid-Web (MVP)
+# ScytaleDroid-Web
 
-A read-only LAMP UI for exploring ScytaleDroid static-analysis results stored in MariaDB/MySQL.
+A read-only LAMP UI for exploring ScytaleDroid analysis results stored in MariaDB/MySQL.
 
 ## Goals
 
-- App-first navigation: list Android apps → drill into an app → review Findings, Strings, and Permissions.
+- App-first navigation: list Android apps, drill into an app, then review Findings, Strings, and Permissions.
+- Runtime-deviation navigation: review persisted dynamic runs, network features, cohorts, and risk regimes.
 - Secure, read-only views backed by prepared PDO queries.
 - Operator-friendly defaults with pagination, filters, and consistent layout helpers.
 
@@ -12,7 +13,8 @@ A read-only LAMP UI for exploring ScytaleDroid static-analysis results stored in
 
 - Authentication or role management.
 - Write operations or pipeline administration.
-- Advanced charts or dynamic analysis visualisations.
+- Write operations or pipeline control.
+- Advanced charts or interactive runtime visualizations.
 
 ## Quickstart
 
@@ -21,15 +23,11 @@ A read-only LAMP UI for exploring ScytaleDroid static-analysis results stored in
    - Web server (Apache/Nginx) configured to serve the project root.
    - MariaDB/MySQL instance populated with ScytaleDroid data.
 2. **Configuration**
-   - Update `database/db_core/db_config.php` with credentials for your environment. The repository ships with local-development defaults (`localhost`, `scytale` user).
+   - Prefer environment variables for database credentials.
+   - For local development, copy `database/db_core/db_config.example.php` to `database/db_core/db_config.php`; the local file is intentionally ignored by Git.
    - Adjust `config/config.php` for deployment-specific settings such as `BASE_URL`.
 3. **Database**
-   - The UI reads from ScytaleDroid tables/views including:
-     - `permission_audit_apps`
-     - `permission_audit_snapshots`
-     - `android_app_categories`
-     - `android_app_definitions`
-     - `static_findings_summary`
+   - The UI reads from ScytaleDroid static exposure and runtime deviation tables.
    - Ensure recommended indexes exist (see `database/README.md`).
 4. **First Run**
    - Visit `/pages/index.php` to load the Apps Directory.
@@ -72,17 +70,23 @@ Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call 
 1. Add SQL templates to `database/db_lib/db_queries.php` and expose feature helpers from `database/db_lib/db_func.php`.
 2. In new pages under `pages/`, guard request parameters via `lib/guards.php` and call the helpers in `db_func.php`.
 3. Render data with the utilities in `lib/render.php`, and use `lib/pager.php` for pagination.
+4. Keep the database as the source of truth. JSON/CSV artifacts should be linked or summarized only when they are not represented in first-class tables.
 
 ## Deployment Notes
 
 - Serve over HTTPS with standard security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`).
 - Run the application using a database account with **SELECT-only** permissions.
-- Rotate the credentials in `database/db_core/db_config.php` when deploying to new environments and restrict them to read-only permissions.
+- Do not expose the repository root directly without server-level deny rules. If the app remains under `/var/www/html/ScytaleDroid-Web`, install rules equivalent to `deploy/apache/ScytaleDroid-Web.conf`.
+- Do not rely on `.htaccess` unless Apache has `AllowOverride` enabled for this directory.
+- Keep `pages/diag.php` localhost-only by default; set `SCYTALEDROID_WEB_ENABLE_DIAG=1` only for trusted maintenance windows.
+- Rotate any credentials that were previously copied from local development defaults.
 
 ## Roadmap Highlights
 
 - ✅ Apps Directory (search, category filter, pagination).
-- 🚧 App detail hub with tabs for Findings, Strings, Permissions.
-- ⏱️ Future: cross-app views (Categories, Snapshots) and diagnostics.
+- ✅ App detail hub with tabs for Findings, Strings, Permissions, and Dynamic runs.
+- ✅ Runtime Deviation run index and dynamic run detail pages.
+- 🚧 Cross-analysis views that combine static exposure and runtime deviation by package.
+- ⏱️ Future: cohort detail, report/export bundle views, and richer runtime visualizations.
 
 Contributions are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

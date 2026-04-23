@@ -4,12 +4,12 @@
 // $rows, $total, $page, $size, $baseUrl, $persist, $severityTotals
 ?>
 
-<section class="neon-panel" data-panel="results">
+<section class="panel" data-panel="results">
   <div class="panel-header">
     <div>
       <h2 class="panel-title">App Directory</h2>
       <p class="panel-subtitle">
-        Latest snapshot per package. <?= $total !== null ? e((int)$total) . ' tracked app' . ((int)$total === 1 ? '' : 's') : e('Unknown total') ?>.
+        Latest analysis-backed package per app. <?= $total !== null ? e((int)$total) . ' tracked app' . ((int)$total === 1 ? '' : 's') : e('Unknown total') ?>.
       </p>
     </div>
     <div class="panel-actions">

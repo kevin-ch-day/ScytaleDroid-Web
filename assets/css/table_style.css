@@ -32,7 +32,10 @@ table.table {
 .table th {
   background: var(--surface-2);
   font-weight: 600;
-  color: var(--text);
+  color: var(--muted);
+  font-size: .78rem;
+  letter-spacing: .03em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -131,6 +134,7 @@ tr.is-info   { background: var(--table-row-info); }
   font-size: .75rem;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .chip-critical { background: var(--sev-critical-bg); color: var(--sev-critical-fg); }
@@ -171,4 +175,57 @@ tr.is-info   { background: var(--table-row-info); }
 .table .btn-cell:hover {
   background: var(--button-hover);
   border-color: var(--nav-active-border);
+}
+
+@media (max-width: 760px) {
+  .table-responsive {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow-x: visible;
+  }
+
+  table.table,
+  .table thead,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table tr {
+    margin-bottom: var(--space-3);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    background: var(--panel-bg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .table td {
+    border-bottom: 1px solid var(--border);
+    padding: .75rem .85rem;
+  }
+
+  .table td:last-child {
+    border-bottom: 0;
+  }
+
+  .cell-clip {
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
 }

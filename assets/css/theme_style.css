@@ -2,10 +2,10 @@
    ScytaleDroid Theme Tokens
    -------------------------------------------------------
    Provides shared design tokens for light and dark modes.
-   Keep values restrained for a simple, utilitarian UI.
+   Default identity: restrained industrial-cyber operator console.
    ======================================================= */
 
-/* ---------- Light (default) ---------------------------------------------- */
+/* ---------- Light -------------------------------------------------------- */
 :root,
 :root[data-theme="light"],
 body[data-theme="light"] {
@@ -15,9 +15,9 @@ body[data-theme="light"] {
   --text: #1f2933;
   --muted: #5b6573;
 
-  --brand: #1d4ed8;
+  --brand: #0369a1;
   --brand-contrast: #ffffff;
-  --brand-secondary: #2563eb;
+  --brand-secondary: #075985;
 
   --surface: #ffffff;
   --surface-2: #eef2f7;
@@ -26,9 +26,9 @@ body[data-theme="light"] {
   --panel-border: #d6dbe4;
   --border: #d6dbe4;
 
-  --nav-active-bg: #e4ecf9;
-  --nav-active-border: #94b3f4;
-  --button-hover: #dce6fa;
+  --nav-active-bg: #e0f2fe;
+  --nav-active-border: #38bdf8;
+  --button-hover: #e0f2fe;
   --table-row-hover: #ecf2ff;
   --table-row-bad: #fdeaea;
   --table-row-warn: #fff4e5;
@@ -78,37 +78,37 @@ body[data-theme="light"] {
   --link-hover:  #1d4ed8;
 }
 
-/* ---------- Dark --------------------------------------------------------- */
+/* ---------- Dark (default operator identity) ----------------------------- */
 :root[data-theme="dark"],
 body[data-theme="dark"] {
-  --bg: #0c1629;
-  --bg-alt: #111d33;
-  --text: #dbe8ff;
-  --muted: #91a4c1;
+  --bg: #070a0d;
+  --bg-alt: #0b1116;
+  --text: #d7dde3;
+  --muted: #8d9aa6;
 
-  --brand: #5b8ff5;
-  --brand-contrast: #0c1629;
-  --brand-secondary: #74a0ff;
+  --brand: #35c7e8;
+  --brand-contrast: #061014;
+  --brand-secondary: #7ddff3;
 
-  --surface: #111d33;
-  --surface-2: #1a273d;
-  --surface-hover: #1d2a43;
-  --panel-bg: #15223a;
-  --panel-border: #1f3352;
-  --border: #1f3352;
+  --surface: #0d1318;
+  --surface-2: #111a20;
+  --surface-hover: #16232b;
+  --panel-bg: #0b1116;
+  --panel-border: #23313a;
+  --border: #1d2a32;
 
-  --nav-active-bg: #1f2f4a;
-  --nav-active-border: #4d74c7;
-  --button-hover: #1d2b41;
-  --table-row-hover: #1f314c;
-  --table-row-bad: rgba(248, 113, 113, 0.2);
-  --table-row-warn: rgba(251, 191, 36, 0.2);
-  --table-row-info: rgba(56, 189, 248, 0.24);
+  --nav-active-bg: rgba(53, 199, 232, 0.09);
+  --nav-active-border: #35c7e8;
+  --button-hover: #13222a;
+  --table-row-hover: rgba(53, 199, 232, 0.08);
+  --table-row-bad: rgba(255, 77, 109, 0.12);
+  --table-row-warn: rgba(245, 158, 11, 0.12);
+  --table-row-info: rgba(53, 199, 232, 0.1);
 
-  --ok:   #34d399;
-  --warn: #fbbf24;
-  --bad:  #f87171;
-  --info: #38bdf8;
+  --ok:   #4ade80;
+  --warn: #f59e0b;
+  --bad:  #ff4d6d;
+  --info: #35c7e8;
 
   --glow-soft: none;
   --glow-strong: none;
@@ -117,7 +117,7 @@ body[data-theme="dark"] {
 
   --radius: 8px;
   --radius-sm: 6px;
-  --shadow: 0 8px 18px rgba(3, 10, 22, 0.55);
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
 
   --space-1: .25rem;
   --space-2: .5rem;

@@ -4,7 +4,7 @@
 // $baseUrl, $q, $category, $size, $hasActiveFilters
 ?>
 
-<section class="neon-panel" data-panel="filters">
+<section class="panel" data-panel="filters">
   <div class="panel-header">
     <div>
       <h2 class="panel-title">Filters</h2>
