@@ -8,6 +8,7 @@ $packageName = $context['package_name'];
 $app = $context['app'];
 $sessions = $context['sessions'];
 $activeSession = $context['active_session'];
+$activeSessionRow = $context['active_session_row'];
 $errorMsg = $context['error'];
 
 $summary = null;

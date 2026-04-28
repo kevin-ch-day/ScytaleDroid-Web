@@ -6,14 +6,15 @@ This application is read-only and expects a populated ScytaleDroid schema. Use t
 
 Static exposure and app-directory views:
 - `v_web_app_directory`
-- `permission_audit_apps`
+- `vw_static_risk_surfaces_latest`
+- `vw_static_finding_surfaces_latest`
 - `permission_audit_snapshots`
 - `android_app_categories`
 - `android_app_profiles`
 - `apps`
 - `app_versions`
-- `static_findings_summary`
-- `static_findings`
+- `static_findings_summary` (compatibility/details bridge)
+- `static_findings` (compatibility/details bridge)
 - `static_permission_matrix`
 - `static_string_summary`
 - `static_string_selected_samples`
@@ -37,11 +38,11 @@ Evidence/artifact views:
 
 | Table | Index |
 | --- | --- |
-| `permission_audit_apps` | `(package_name, snapshot_id)` |
+| `vw_static_risk_surfaces_latest` | `(package_name)` |
 | `permission_audit_snapshots` | `(snapshot_id)` and `(snapshot_key)` |
 | `apps` | `(package_name)` |
 | `android_app_categories` | `(category_id)` |
-| `static_findings_summary` | `(package_name, session_stamp)` |
+| `vw_static_finding_surfaces_latest` | `(package_name)` |
 | `static_analysis_runs` | `(session_stamp, app_version_id)` |
 | `dynamic_sessions` | `(package_name, started_at_utc)` and `(dynamic_run_id)` |
 | `dynamic_network_features` | `(dynamic_run_id)` |
@@ -92,10 +93,16 @@ SELECT package_name, app_label, grade, high, med, low, source_state
 FROM v_web_app_directory
 LIMIT 5;
 
--- Confirm static exposure summaries exist
-SELECT package_name, session_stamp, high, med, low
-FROM static_findings_summary
-ORDER BY updated_at DESC
+-- Confirm latest explicit finding surfaces exist
+SELECT package_name, session_stamp, canonical_high, canonical_med, canonical_low
+FROM vw_static_finding_surfaces_latest
+ORDER BY session_stamp DESC
+LIMIT 5;
+
+-- Confirm latest explicit risk surfaces exist
+SELECT package_name, permission_run_score, permission_audit_score_capped
+FROM vw_static_risk_surfaces_latest
+ORDER BY session_stamp DESC
 LIMIT 5;
 
 -- Confirm runtime deviation runs exist

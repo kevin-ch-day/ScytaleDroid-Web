@@ -292,9 +292,6 @@ function app_overview(string $packageName): ?array
         SQL_APP_OVERVIEW,
         [
             'pkg_lookup' => $packageName,
-            'pkg_audit' => $packageName,
-            'pkg_audit_match' => $packageName,
-            'pkg_static' => $packageName,
         ]
     );
 }
@@ -312,8 +309,6 @@ function app_sessions(string $packageName, int $limit = 24): array
         $sql,
         [
             'pkg_runs' => $packageName,
-            'pkg_audits' => $packageName,
-            'pkg_sessions' => $packageName,
         ]
     );
 }

@@ -8,6 +8,7 @@ $packageName = $context['package_name'];
 $app = $context['app'];
 $sessions = $context['sessions'];
 $activeSession = $context['active_session'];
+$activeSessionRow = $context['active_session_row'];
 $errorMsg = $context['error'];
 
 $summary = null;
@@ -29,7 +30,14 @@ require_once __DIR__ . '/../lib/header.php';
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
 <?php elseif ($packageName === null): ?>
-  <section class="section"><div class="panel"><div class="panel-body"><p class="muted">Choose an app to explore persisted strings intelligence.</p></div></div></section>
+  <section class="section">
+    <div class="panel">
+      <div class="panel-body">
+        <p class="muted">Choose an app to explore persisted strings intelligence.</p>
+        <p><a class="btn-ghost" href="<?= e(url('pages/index.php')) ?>">Open Apps Directory</a></p>
+      </div>
+    </div>
+  </section>
 <?php else: ?>
   <?php
   $activeTab = 'strings';
