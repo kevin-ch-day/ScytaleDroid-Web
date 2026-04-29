@@ -30,7 +30,7 @@
         <?php endforeach; ?>
       </select>
 
-      <label class="inline-check">
+      <label class="inline-check" title="Include inventory/catalog package records that do not currently have finalized static-analysis results.">
         <input type="checkbox" name="include_catalog" value="1" <?= !empty($includeCatalogOnly) ? 'checked' : '' ?>>
         <span>Include catalog-only related packages</span>
       </label>
@@ -40,7 +40,7 @@
     </form>
 
     <p class="inline-hint">
-      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>. Catalog-only rows are inventory records, not finalized static-analysis results.
+      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>. Default results prioritize analyzed apps; catalog-only rows are inventory context, not evidence of zero risk.
     </p>
   </div>
 </section>

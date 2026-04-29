@@ -18,7 +18,7 @@ require_once __DIR__ . '/../lib/header.php';
       <div class="detail-kv">
         <div><dt>Home Route</dt><dd><a href="<?= e(url('pages/index.php')) ?>">Home / Fleet Dashboard</a></dd></div>
         <div><dt>Runtime Route</dt><dd><a href="<?= e(url('pages/dynamic.php')) ?>">Runtime Deviation</a></dd></div>
-        <div><dt>Report Views</dt><dd>Overview, Findings, Permissions, Strings, Dynamic Runs</dd></div>
+        <div><dt>Report Views</dt><dd>Summary, Findings, Components, Permissions, Strings, Dynamic</dd></div>
         <div><dt>Backend</dt><dd>PHP + PDO MySQL/MariaDB</dd></div>
         <div><dt>Mode</dt><dd>Read-only operator console</dd></div>
       </div>

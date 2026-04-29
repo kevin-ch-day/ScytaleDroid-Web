@@ -11,6 +11,7 @@
       <p class="panel-subtitle">
         Fleet view of the latest web-facing static summaries. <?= $total !== null ? e((int)$total) . ' tracked app' . ((int)$total === 1 ? '' : 's') : e('Unknown total') ?>.
       </p>
+      <p class="muted"><?= e($directoryStateSummary ?? '') ?></p>
     </div>
     <div class="panel-actions">
       <button type="button" class="btn-ghost" data-action="toggle-density">Toggle Density</button>
@@ -21,7 +22,7 @@
       <div class="metric-card">
         <span class="metric-label">Tracked Apps</span>
         <span class="metric-value"><?= e((string)$total) ?></span>
-        <p class="muted">Analyzed <?= e((string)($analyzedCount ?? 0)) ?><?php if (!empty($catalogOnlyCount)): ?> • Catalog-only <?= e((string)$catalogOnlyCount) ?><?php endif; ?></p>
+        <p class="muted">Analyzed <?= e((string)($analyzedCount ?? 0)) ?><?php if (!empty($catalogOnlyCount)): ?> • Catalog only <?= e((string)$catalogOnlyCount) ?><?php endif; ?></p>
       </div>
       <div class="metric-card">
         <span class="metric-label">Latest Session (page)</span>
@@ -49,6 +50,10 @@
         <p class="muted">Medium <?= e((string)$severityTotals['med']) ?> • Low <?= e((string)$severityTotals['low']) ?></p>
       </div>
     </div>
+
+    <p class="inline-hint app-state-hint">
+      <strong>Data state matters:</strong> catalog-only rows are package records without finalized static-analysis results. They are inventory context, not clean findings.
+    </p>
 
     <div class="table-responsive">
       <table class="table table-striped table-hover table-sticky" data-table="apps">
@@ -79,6 +84,8 @@
               $sessionStamp = trim((string)($r['session_stamp'] ?? ''));
               $profile = trim((string)($r['profile_label'] ?? ''));
               $category = trim((string)($r['category'] ?? ''));
+              $stateSummary = source_state_summary_text($state);
+              $stateHint = source_state_hint($state);
             ?>
               <tr>
                 <td class="cell-clip">
@@ -106,7 +113,8 @@
                 <td class="col-center" data-hml="<?= e($hml) ?>"><?= e($hml) ?></td>
                 <td>
                   <div class="meta-stack">
-                    <span class="table-subline"><?= source_state_chip($state) ?></span>
+                    <span class="table-subline" title="<?= e($stateHint) ?>"><?= source_state_chip($state) ?></span>
+                    <span class="table-subline muted"><?= e($stateSummary) ?></span>
                     <span class="session-stamp"><?= e($sessionStamp !== '' ? $sessionStamp : '—') ?></span>
                   </div>
                 </td>
@@ -120,7 +128,7 @@
               </tr>
               <?php foreach ($analyzedRows as $r): $renderRow($r); endforeach; ?>
               <tr class="table-group-row">
-                <td colspan="6">Related catalog packages</td>
+                <td colspan="6">Related catalog packages (inventory context only)</td>
               </tr>
               <?php foreach ($catalogOnlyRows as $r): $renderRow($r); endforeach; ?>
             <?php else: ?>

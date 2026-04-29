@@ -16,6 +16,10 @@ $auditStamp = $activeSessionUsable ? ($activeSessionRow['audit_created_at'] ?? (
 $runStatus = $activeSessionRow['run_status'] ?? null;
 $sessionCreated = $activeSessionRow['created_at'] ?? null;
 $auditLabel = $activeSessionUsable ? 'Selected session audit' : 'Latest completed audit';
+$activeSessionState = (string)($activeSessionRow['session_usability'] ?? 'unknown');
+$activeSessionStateSummary = session_usability_summary_text($activeSessionState);
+$activeSessionStateHint = session_usability_hint($activeSessionState);
+$activeSessionTypeHint = session_type_hint((string)$activeSession, (string)($activeSessionRow['profile'] ?? ''));
 ?>
 
 <section class="section detail-hero">
@@ -33,12 +37,13 @@ $auditLabel = $activeSessionUsable ? 'Selected session audit' : 'Latest complete
         <?= grade_badge(is_string($grade) ? $grade : null) ?>
         <?php if ($activeSession): ?>
           <?= chip('Data source ' . $activeSession, 'info') ?>
+          <span title="<?= e($activeSessionTypeHint) ?>"><?= session_type_chip((string)$activeSession, (string)($activeSessionRow['profile'] ?? '')) ?></span>
         <?php endif; ?>
         <?php if ($runStatus): ?>
           <?= status_chip((string)$runStatus) ?>
         <?php endif; ?>
         <?php if ($activeSessionRow): ?>
-          <?= session_usability_chip((string)($activeSessionRow['session_usability'] ?? 'unknown')) ?>
+          <span title="<?= e($activeSessionStateHint) ?>"><?= session_usability_chip($activeSessionState) ?></span>
         <?php endif; ?>
         <?php if ($score !== null && $score !== ''): ?>
           <?= chip('Score ' . $score, 'medium') ?>
@@ -48,6 +53,10 @@ $auditLabel = $activeSessionUsable ? 'Selected session audit' : 'Latest complete
     <?php if ($auditStamp || $sessionCreated): ?>
       <div class="panel-body">
         <p class="muted">
+          <?php if ($activeSessionRow): ?>
+            <span class="muted"><?= e($activeSessionStateSummary) ?></span>
+            <span class="muted"> · </span>
+          <?php endif; ?>
           <?php if ($auditStamp): ?>
             <?= e($auditLabel) ?>: <?= e(fmt_date((string)$auditStamp)) ?>
           <?php else: ?>

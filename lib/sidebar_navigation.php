@@ -48,10 +48,12 @@ $navSections = [
       ],
       [
         'label' => 'Permission Intelligence',
-        'href' => url('pages/android_permissions.php'),
+        'href' => url('pages/permissions.php'),
         'desc' => 'Review permission prevalence, sources, and sensitive combinations',
         'match' => [
+          url('pages/permissions.php'),
           url('pages/android_permissions.php'),
+          '/pages/permissions.php',
           '/pages/android_permissions.php',
         ],
       ],
@@ -62,12 +64,14 @@ $navSections = [
         'match' => [
           url('pages/app_report.php'),
           url('pages/app_findings.php'),
+          url('pages/app_components.php'),
           url('pages/app_strings.php'),
           url('pages/app_permissions.php'),
           url('pages/app_dynamic.php'),
           url('pages/dynamic_run.php'),
           '/pages/app_report.php',
           '/pages/app_findings.php',
+          '/pages/app_components.php',
           '/pages/app_strings.php',
           '/pages/app_permissions.php',
           '/pages/app_dynamic.php',

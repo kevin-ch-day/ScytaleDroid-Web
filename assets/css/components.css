@@ -438,6 +438,45 @@
   gap: .5rem;
 }
 
+.coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.coverage-item {
+  display: grid;
+  gap: .45rem;
+  padding: var(--space-3);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.coverage-item .table-subline {
+  margin-top: 0;
+}
+
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.explore-card {
+  display: grid;
+  gap: .8rem;
+  padding: var(--space-3);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 70%, var(--surface-2)) 0%, var(--surface) 100%);
+}
+
+.explore-card .btn-ghost {
+  justify-self: start;
+}
+
 .package-cell,
 .meta-stack {
   display: grid;

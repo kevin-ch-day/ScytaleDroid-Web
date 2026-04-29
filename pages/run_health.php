@@ -54,6 +54,7 @@ require_once __DIR__ . '/../lib/header.php';
               <thead>
                 <tr>
                   <th>Session</th>
+                  <th>Type</th>
                   <th class="col-center">Status</th>
                   <th class="col-num">Apps</th>
                   <th class="col-num">Findings</th>
@@ -74,29 +75,14 @@ require_once __DIR__ . '/../lib/header.php';
                   $stringsReady = (int)($row['strings_ready'] ?? 0);
                   $auditReady = (int)($row['audit_ready'] ?? 0);
                   $linkReady = (int)($row['link_ready'] ?? 0);
-                  $state = 'partial_rows';
-                  if (in_array(strtoupper((string)($row['status'] ?? '')), ['FAILED', 'ABORTED'], true)) {
-                      $state = 'failed';
-                  } elseif (
-                      in_array(strtoupper((string)($row['status'] ?? '')), ['STARTED', 'RUNNING', 'SCANNED', 'PERSISTING'], true)
-                      && $findingsReady === 0
-                      && $permissionsReady === 0
-                      && $stringsReady === 0
-                      && $auditReady === 0
-                  ) {
-                      $state = 'in_progress_no_rows';
-                  } elseif (
-                      strtoupper((string)($row['status'] ?? '')) === 'COMPLETED'
-                      && $appRuns > 0
-                      && $findingsReady === $appRuns
-                      && $permissionsReady === $appRuns
-                      && $stringsReady === $appRuns
-                  ) {
-                      $state = 'usable_complete';
-                  }
+                  $state = (string)($row['session_usability'] ?? 'unknown');
+                  $stateHint = session_usability_hint($state);
+                  $stateSummary = session_usability_summary_text($state);
+                  $typeHint = session_type_hint((string)($row['session_stamp'] ?? ''), null);
                   ?>
                   <tr>
                     <td><span class="session-stamp"><?= e((string)($row['session_stamp'] ?? '')) ?></span></td>
+                    <td><span title="<?= e($typeHint) ?>"><?= session_type_chip((string)($row['session_stamp'] ?? ''), null) ?></span></td>
                     <td class="col-center"><?= status_chip((string)($row['status'] ?? 'UNKNOWN')) ?></td>
                     <td class="col-num"><?= e((string)$appRuns) ?></td>
                     <td class="col-num"><?= e((string)$findingsReady) ?></td>
@@ -104,7 +90,12 @@ require_once __DIR__ . '/../lib/header.php';
                     <td class="col-num"><?= e((string)$stringsReady) ?></td>
                     <td class="col-num"><?= e((string)$auditReady) ?></td>
                     <td class="col-num"><?= e((string)$linkReady) ?></td>
-                    <td><?= session_usability_chip($state) ?></td>
+                    <td>
+                      <div class="meta-stack">
+                        <span title="<?= e($stateHint) ?>"><?= session_usability_chip($state) ?></span>
+                        <span class="table-subline muted"><?= e($stateSummary) ?></span>
+                      </div>
+                    </td>
                     <td class="nowrap"><?= e(fmt_date((string)($row['created_at'] ?? ''))) ?></td>
                   </tr>
                 <?php endforeach; ?>

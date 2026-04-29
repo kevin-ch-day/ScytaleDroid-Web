@@ -16,6 +16,11 @@
       </div>
       <div class="panel-body">
         <?php if (!empty($activeSessionRow)): ?>
+          <?php
+          $activeUsabilityState = (string)($activeSessionRow['session_usability'] ?? 'unknown');
+          $activeUsabilityHint = session_usability_hint($activeUsabilityState);
+          $activeUsabilitySummary = session_usability_summary_text($activeUsabilityState);
+          ?>
           <div class="session-summary">
             <div class="session-summary-main">
               <div class="app-primary"><?= e((string)($activeSessionRow['session_stamp'] ?? '')) ?></div>
@@ -23,10 +28,12 @@
                 <?= e((string)($activeSessionRow['run_status'] ?? 'UNKNOWN')) ?>
                 · H/M/L <?= e(fmt_hml((int)($activeSessionRow['high'] ?? 0), (int)($activeSessionRow['med'] ?? 0), (int)($activeSessionRow['low'] ?? 0), (int)($activeSessionRow['info'] ?? 0))) ?>
               </div>
+              <div class="table-subline muted"><?= e($activeUsabilitySummary) ?></div>
             </div>
             <div class="chip-row">
+              <span title="<?= e(session_type_hint((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? ''))) ?>"><?= session_type_chip((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? '')) ?></span>
               <?= status_chip((string)($activeSessionRow['run_status'] ?? 'UNKNOWN')) ?>
-              <?= session_usability_chip((string)($activeSessionRow['session_usability'] ?? 'unknown')) ?>
+              <span title="<?= e($activeUsabilityHint) ?>"><?= session_usability_chip($activeUsabilityState) ?></span>
               <?php if (!empty($activeSessionRow['grade']) && $activeSessionUsable): ?>
                 <?= chip('Audit ' . (string)$activeSessionRow['grade'], 'low') ?>
               <?php endif; ?>
@@ -60,15 +67,29 @@
             $incomplete = [];
             $historical = [];
             $failed = [];
+            $hiddenByType = 0;
             foreach ($sessions as $row) {
                 $state = strtolower((string)($row['session_usability'] ?? ''));
+                $typeHidden = session_type_hidden_by_default((string)($row['session_stamp'] ?? ''), (string)($row['profile'] ?? ''));
                 if ((int)($row['is_usable_complete'] ?? 0) === 1) {
+                    if ($typeHidden) {
+                        $hiddenByType++;
+                        continue;
+                    }
                     $historical[] = $row;
                 } elseif ($state === 'in_progress_no_rows') {
                     $incomplete[] = $row;
                 } elseif ($state === 'failed') {
+                    if ($typeHidden) {
+                        $hiddenByType++;
+                        continue;
+                    }
                     $failed[] = $row;
                 } else {
+                    if ($typeHidden) {
+                        $hiddenByType++;
+                        continue;
+                    }
                     $historical[] = $row;
                 }
             }
@@ -80,11 +101,17 @@
                 ));
             }
 
+            $historicalOverflow = max(0, count($historical) - 5);
+            $historicalVisible = array_slice($historical, 0, 5);
+            $incompleteVisible = array_slice($incomplete, 0, 3);
+            $failedOverflow = max(0, count($failed) - 3);
+            $failedVisible = array_slice($failed, 0, 3);
+
             $groups = [
                 'Recommended' => $recommended,
-                'Incomplete' => $incomplete,
-                'Historical' => $historical,
-                'Failed' => $failed,
+                'Incomplete' => $incompleteVisible,
+                'Historical' => $historicalVisible,
+                'Failed' => $failedVisible,
             ];
             ?>
             <?php foreach ($groups as $label => $groupRows): ?>
@@ -101,14 +128,25 @@
                     <a class="session-link<?= $active ? ' is-active' : '' ?>" href="<?= e($href) ?>">
                       <span class="session-link-main"><?= e($stamp) ?></span>
                       <span class="session-link-meta">
+                        <?= e(session_type_label($stamp, (string)($row['profile'] ?? ''))) ?>
+                        ·
                         <?= e((string)($row['run_status'] ?? 'UNKNOWN')) ?>
                         · <?= e(fmt_hml((int)($row['high'] ?? 0), (int)($row['med'] ?? 0), (int)($row['low'] ?? 0), (int)($row['info'] ?? 0))) ?>
                       </span>
+                      <span class="table-subline muted"><?= e(session_usability_summary_text((string)($row['session_usability'] ?? 'unknown'))) ?></span>
                     </a>
                   <?php endforeach; ?>
                 </div>
+                <?php if ($label === 'Historical' && $historicalOverflow > 0): ?>
+                  <p class="table-subline muted">Showing the latest 5 historical sessions. <?= e((string)$historicalOverflow) ?> older session(s) are hidden by default.</p>
+                <?php elseif ($label === 'Failed' && $failedOverflow > 0): ?>
+                  <p class="table-subline muted">Showing the latest 3 failed sessions. <?= e((string)$failedOverflow) ?> older failed session(s) are hidden by default.</p>
+                <?php endif; ?>
               </div>
             <?php endforeach; ?>
+            <?php if ($hiddenByType > 0): ?>
+              <p class="table-subline muted">QA, debug, and smoke sessions hidden by default: <?= e((string)$hiddenByType) ?>. Use dedicated run-health or diagnostics surfaces for full test-session history.</p>
+            <?php endif; ?>
           </div>
         </details>
       </div>

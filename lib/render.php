@@ -65,30 +65,77 @@ function status_chip(?string $status): string
 /** Static/web source state -> badge */
 function source_state_chip(?string $state): string
 {
+    $meta = source_state_meta($state);
+    return chip($meta['label'], $meta['tone']);
+}
+
+function source_state_meta(?string $state): array
+{
     $normalized = strtolower(trim((string)$state));
-    $tone = 'muted';
-    $label = match ($normalized) {
-        'catalog', 'catalog_only' => 'Catalog only',
-        'static' => 'Static findings',
-        'static_findings' => 'Static findings',
-        'static+permission_audit' => 'Static + risk',
-        'static_findings+risk' => 'Static + risk',
-        'static_findings+risk+permission_audit' => 'Static + risk + audit',
-        'permission_audit' => 'Permission audit',
-        'permission_audit_only' => 'Permission audit',
-        'risk_score_only' => 'Risk score only',
-        default => $normalized !== '' ? str_replace('_', ' ', $normalized) : 'unknown',
+    return match ($normalized) {
+        'catalog', 'catalog_only' => [
+            'key' => 'catalog_only',
+            'label' => 'Catalog only',
+            'tone' => 'muted',
+            'hint' => 'Inventory/catalog record only. No finalized static-analysis result is being shown.',
+        ],
+        'static', 'static_findings' => [
+            'key' => 'static_findings',
+            'label' => 'Static findings',
+            'tone' => 'low',
+            'hint' => 'Static findings are available, but no current risk score or audit row is attached here.',
+        ],
+        'static+permission_audit', 'static_findings+risk' => [
+            'key' => 'static_findings+risk',
+            'label' => 'Static findings + risk',
+            'tone' => 'info',
+            'hint' => 'Static findings and a latest risk score are available for this package/session.',
+        ],
+        'static_findings+risk+permission_audit' => [
+            'key' => 'static_findings+risk+permission_audit',
+            'label' => 'Static + risk + audit',
+            'tone' => 'info',
+            'hint' => 'Static findings, risk score, and permission-audit coverage are all available.',
+        ],
+        'permission_audit', 'permission_audit_only' => [
+            'key' => 'permission_audit_only',
+            'label' => 'Permission audit',
+            'tone' => 'medium',
+            'hint' => 'Permission-audit data exists even if full static findings are not attached here.',
+        ],
+        'risk_score_only' => [
+            'key' => 'risk_score_only',
+            'label' => 'Risk score only',
+            'tone' => 'medium',
+            'hint' => 'A derived risk score exists, but full findings coverage is not available on this row.',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'unknown',
+            'label' => $normalized !== '' ? ucwords(str_replace('_', ' ', $normalized)) : 'Unknown',
+            'tone' => 'muted',
+            'hint' => 'This row has an unclassified data state and may need read-model cleanup.',
+        ],
     };
+}
 
-    if (in_array($normalized, ['static+permission_audit', 'static_findings+risk', 'static_findings+risk+permission_audit'], true)) {
-        $tone = 'info';
-    } elseif (in_array($normalized, ['static', 'static_findings'], true)) {
-        $tone = 'low';
-    } elseif (in_array($normalized, ['permission_audit', 'permission_audit_only', 'risk_score_only'], true)) {
-        $tone = 'medium';
-    }
+function source_state_hint(?string $state): string
+{
+    $meta = source_state_meta($state);
+    return (string)$meta['hint'];
+}
 
-    return chip($label, $tone);
+function source_state_summary_text(?string $state): string
+{
+    $normalized = strtolower(trim((string)$state));
+    return match ($normalized) {
+        'catalog', 'catalog_only' => 'Not analyzed',
+        'static', 'static_findings' => 'Findings available',
+        'static+permission_audit', 'static_findings+risk' => 'Findings and risk available',
+        'static_findings+risk+permission_audit' => 'Findings, risk, and audit available',
+        'permission_audit', 'permission_audit_only' => 'Permission audit available',
+        'risk_score_only' => 'Risk score available',
+        default => 'Data state unknown',
+    };
 }
 
 function app_directory_grade_badge(?string $grade, ?string $sourceState): string
@@ -119,27 +166,167 @@ function app_directory_hmli_text(array $row): string
     return fmt_hml($row['high'] ?? 0, $row['med'] ?? 0, $row['low'] ?? 0, isset($row['info']) ? (int)$row['info'] : null);
 }
 
+/** Session stamp/profile -> session type metadata */
+function session_type_meta(?string $sessionStamp, ?string $profile = null): array
+{
+    $stamp = strtolower(trim((string)$sessionStamp));
+    $profile = strtolower(trim((string)$profile));
+
+    $meta = [
+        'key' => 'unknown',
+        'label' => 'Session',
+        'tone' => 'muted',
+        'hint' => 'Session type is not classified yet.',
+        'hidden_by_default' => false,
+    ];
+
+    if ($stamp === '' && $profile === '') {
+        return $meta;
+    }
+
+    $contains = static fn(string $needle): bool => $needle !== '' && (str_contains($stamp, $needle) || str_contains($profile, $needle));
+
+    if ($contains('qa') || $contains('headless') || $contains('stability') || $contains('debug') || $contains('static-batch')) {
+        return [
+            'key' => 'qa',
+            'label' => 'QA / Debug',
+            'tone' => 'muted',
+            'hint' => 'This looks like a QA, debug, headless, or stability session and is hidden by default in analyst-facing selectors.',
+            'hidden_by_default' => true,
+        ];
+    }
+    if ($contains('smoke')) {
+        return [
+            'key' => 'smoke',
+            'label' => 'Smoke',
+            'tone' => 'low',
+            'hint' => 'This is a smoke or quick validation run and is hidden by default in analyst-facing selectors.',
+            'hidden_by_default' => true,
+        ];
+    }
+    if ($contains('rerun')) {
+        return [
+            'key' => 'rerun',
+            'label' => 'Rerun',
+            'tone' => 'medium',
+            'hint' => 'This is a rerun for the same package or session family.',
+            'hidden_by_default' => false,
+        ];
+    }
+    if ($contains('fast')) {
+        return [
+            'key' => 'fast',
+            'label' => 'Fast',
+            'tone' => 'low',
+            'hint' => 'This is a fast/static review run, usually narrower than a full session.',
+            'hidden_by_default' => false,
+        ];
+    }
+    if ($contains('single') || $contains('one-app')) {
+        return [
+            'key' => 'single_app',
+            'label' => 'Single App',
+            'tone' => 'medium',
+            'hint' => 'This session appears to target a single app rather than a full harvested set.',
+            'hidden_by_default' => false,
+        ];
+    }
+    if ($contains('all-full') || $contains('rda-full') || $contains('full')) {
+        return [
+            'key' => 'full',
+            'label' => 'Full',
+            'tone' => 'info',
+            'hint' => 'This is a full static-analysis session over a broader harvested scope.',
+            'hidden_by_default' => false,
+        ];
+    }
+
+    return $meta;
+}
+
+function session_type_chip(?string $sessionStamp, ?string $profile = null): string
+{
+    $meta = session_type_meta($sessionStamp, $profile);
+    return chip($meta['label'], $meta['tone']);
+}
+
+function session_type_label(?string $sessionStamp, ?string $profile = null): string
+{
+    $meta = session_type_meta($sessionStamp, $profile);
+    return (string)$meta['label'];
+}
+
+function session_type_hint(?string $sessionStamp, ?string $profile = null): string
+{
+    $meta = session_type_meta($sessionStamp, $profile);
+    return (string)$meta['hint'];
+}
+
+function session_type_hidden_by_default(?string $sessionStamp, ?string $profile = null): bool
+{
+    $meta = session_type_meta($sessionStamp, $profile);
+    return (bool)($meta['hidden_by_default'] ?? false);
+}
+
 /** Session usability/state -> badge */
 function session_usability_chip(?string $state): string
 {
+    $meta = session_usability_meta($state);
+    return chip($meta['label'], $meta['tone']);
+}
+
+function session_usability_meta(?string $state): array
+{
     $normalized = strtolower(trim((string)$state));
-    $label = match ($normalized) {
-        'usable_complete' => 'Usable',
-        'in_progress_no_rows' => 'In Progress',
-        'partial_rows' => 'Partial',
-        'failed' => 'Failed',
-        default => $normalized !== '' ? ucfirst(str_replace('_', ' ', $normalized)) : 'Unknown',
+    return match ($normalized) {
+        'usable_complete' => [
+            'key' => 'usable_complete',
+            'label' => 'Usable',
+            'tone' => 'info',
+            'hint' => 'Findings, permissions, strings, and other report-facing rows are finalized for this session.',
+            'summary' => 'Completed and ready for report use',
+        ],
+        'in_progress_no_rows' => [
+            'key' => 'in_progress_no_rows',
+            'label' => 'In Progress',
+            'tone' => 'medium',
+            'hint' => 'This session started, but report-facing rows are not finalized yet.',
+            'summary' => 'Session started but not finalized',
+        ],
+        'partial_rows' => [
+            'key' => 'partial_rows',
+            'label' => 'Partial',
+            'tone' => 'low',
+            'hint' => 'Some report-facing rows exist, but the session is not fully complete.',
+            'summary' => 'Partially usable with missing surfaces',
+        ],
+        'failed' => [
+            'key' => 'failed',
+            'label' => 'Failed',
+            'tone' => 'high',
+            'hint' => 'The session failed or aborted before it produced a complete report set.',
+            'summary' => 'Failed before finalization',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'unknown',
+            'label' => $normalized !== '' ? ucfirst(str_replace('_', ' ', $normalized)) : 'Unknown',
+            'tone' => 'muted',
+            'hint' => 'Session usability is unknown and may need run-health review.',
+            'summary' => 'Session state unknown',
+        ],
     };
+}
 
-    $tone = match ($normalized) {
-        'usable_complete' => 'info',
-        'in_progress_no_rows' => 'medium',
-        'partial_rows' => 'low',
-        'failed' => 'high',
-        default => 'muted',
-    };
+function session_usability_hint(?string $state): string
+{
+    $meta = session_usability_meta($state);
+    return (string)$meta['hint'];
+}
 
-    return chip($label, $tone);
+function session_usability_summary_text(?string $state): string
+{
+    $meta = session_usability_meta($state);
+    return (string)$meta['summary'];
 }
 
 /** Human-friendly finding evidence summary. */

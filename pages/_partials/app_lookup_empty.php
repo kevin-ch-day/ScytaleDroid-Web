@@ -10,7 +10,7 @@
   <div class="panel">
     <div class="panel-header">
       <div>
-        <h1 class="panel-title"><?= e($title ?? 'App Detail') ?></h1>
+        <h1 class="panel-title"><?= e($title ?? 'App Report') ?></h1>
         <p class="panel-subtitle"><?= e($message ?? 'Select an application to continue.') ?></p>
       </div>
     </div>

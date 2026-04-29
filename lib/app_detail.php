@@ -53,7 +53,7 @@ function load_app_detail_context(?string $packageRaw, ?string $sessionRaw): arra
     }
 
     foreach ($context['sessions'] as $row) {
-        if ((int)($row['is_usable_complete'] ?? 0) === 1) {
+        if ((int)($row['session_preference_rank'] ?? 0) === 1) {
             $context['preferred_session_row'] = $row;
             $context['preferred_session'] = guard_session((string)($row['session_stamp'] ?? ''));
             break;
@@ -94,6 +94,7 @@ function load_app_detail_context(?string $packageRaw, ?string $sessionRaw): arra
         if (
             $firstStamp !== ''
             && $firstStamp !== $preferredStamp
+            && (int)($firstRow['session_recency_rank'] ?? 0) === 1
             && strtolower((string)($firstRow['session_usability'] ?? '')) === 'in_progress_no_rows'
         ) {
             $context['newer_incomplete_session_row'] = $firstRow;

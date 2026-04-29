@@ -5,6 +5,7 @@
 $tabBase = [
   'report' => 'app_report.php',
   'findings' => 'app_findings.php',
+  'components' => 'app_components.php',
   'permissions' => 'app_permissions.php',
   'strings' => 'app_strings.php',
   'dynamic' => 'app_dynamic.php',

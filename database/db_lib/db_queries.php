@@ -58,21 +58,19 @@ SQL;
 
 const SQL_DASHBOARD_RECURRING_FINDINGS = <<<SQL
 SELECT
-  f.title,
-  COALESCE(f.category, 'Uncategorized') AS category,
-  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area,
-  LOWER(COALESCE(f.severity, 'info')) AS severity,
+  title,
+  category,
+  masvs_area,
+  severity,
   COUNT(*) AS finding_rows,
-  COUNT(DISTINCT latest.package_name) AS affected_apps
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  COUNT(DISTINCT package_name) AS affected_apps
+FROM v_web_app_findings
 GROUP BY
-  f.title,
-  COALESCE(f.category, 'Uncategorized'),
-  COALESCE(f.masvs_area, 'Unmapped'),
-  LOWER(COALESCE(f.severity, 'info'))
-ORDER BY affected_apps DESC, finding_rows DESC, f.title ASC
+  title,
+  category,
+  masvs_area,
+  severity
+ORDER BY affected_apps DESC, finding_rows DESC, title ASC
 SQL;
 
 const SQL_APP_OVERVIEW = <<<SQL
@@ -129,115 +127,37 @@ SQL;
 
 const SQL_APP_SESSIONS = <<<SQL
 SELECT
-  sar.id AS static_run_id,
-  sar.session_stamp,
-  sar.created_at,
-  COALESCE(sar.status, 'UNKNOWN') AS run_status,
-  sar.profile,
-  COALESCE(cf.findings_total, 0) AS findings_total,
-  sar.non_canonical_reasons,
-  COALESCE(cf.high, 0) AS high,
-  COALESCE(cf.med, 0) AS med,
-  COALESCE(cf.low, 0) AS low,
-  COALESCE(cf.info, 0) AS info,
-  COALESCE(pm.permission_rows, 0) AS permission_rows,
-  COALESCE(sss.high_entropy, 0) AS high_entropy,
-  COALESCE(sss.endpoints, 0) AS endpoints,
-  COALESCE(sss.string_rows, 0) AS string_rows,
-  audits.grade,
-  audits.score_capped,
-  audits.audit_created_at,
-  COALESCE(audits.audit_rows, 0) AS audit_rows,
-  COALESCE(audits.dangerous_count, 0) AS dangerous_count,
-  COALESCE(audits.signature_count, 0) AS signature_count,
-  COALESCE(audits.vendor_count, 0) AS vendor_count,
-  COALESCE(links.link_rows, 0) AS link_rows,
-  CASE
-    WHEN UPPER(COALESCE(sar.status, '')) IN ('FAILED', 'ABORTED') THEN 'failed'
-    WHEN UPPER(COALESCE(sar.status, '')) IN ('STARTED', 'RUNNING', 'SCANNED', 'PERSISTING')
-      AND COALESCE(cf.findings_total, 0) = 0
-      AND COALESCE(pm.permission_rows, 0) = 0
-      AND COALESCE(sss.string_rows, 0) = 0
-      AND COALESCE(audits.audit_rows, 0) = 0
-      THEN 'in_progress_no_rows'
-    WHEN UPPER(COALESCE(sar.status, '')) = 'COMPLETED'
-      AND COALESCE(cf.findings_total, 0) > 0
-      AND COALESCE(pm.permission_rows, 0) > 0
-      AND COALESCE(sss.string_rows, 0) > 0
-      THEN 'usable_complete'
-    WHEN UPPER(COALESCE(sar.status, '')) = 'COMPLETED' THEN 'partial_rows'
-    ELSE 'partial_rows'
-  END AS session_usability,
-  CASE
-    WHEN UPPER(COALESCE(sar.status, '')) = 'COMPLETED'
-      AND COALESCE(cf.findings_total, 0) > 0
-      AND COALESCE(pm.permission_rows, 0) > 0
-      AND COALESCE(sss.string_rows, 0) > 0
-      THEN 1
-    ELSE 0
-  END AS is_usable_complete
-FROM static_analysis_runs sar
-JOIN app_versions av
-  ON av.id = sar.app_version_id
-JOIN apps a
-  ON a.id = av.app_id
-LEFT JOIN (
-  SELECT
-    run_id,
-    COUNT(*) AS findings_total,
-    SUM(CASE WHEN LOWER(COALESCE(severity, '')) = 'high' THEN 1 ELSE 0 END) AS high,
-    SUM(CASE WHEN LOWER(COALESCE(severity, '')) = 'medium' THEN 1 ELSE 0 END) AS med,
-    SUM(CASE WHEN LOWER(COALESCE(severity, '')) = 'low' THEN 1 ELSE 0 END) AS low,
-    SUM(CASE WHEN LOWER(COALESCE(severity, '')) = 'info' THEN 1 ELSE 0 END) AS info
-  FROM static_analysis_findings
-  GROUP BY run_id
-) cf
-  ON cf.run_id = sar.id
-LEFT JOIN (
-  SELECT
-    run_id,
-    COUNT(*) AS permission_rows
-  FROM static_permission_matrix
-  GROUP BY run_id
-) pm
-  ON pm.run_id = sar.id
-LEFT JOIN (
-  SELECT
-    package_name,
-    session_stamp,
-    COUNT(*) AS string_rows,
-    MAX(high_entropy) AS high_entropy,
-    MAX(endpoints) AS endpoints
-  FROM static_string_summary
-  GROUP BY package_name, session_stamp
-) sss
-  ON sss.package_name COLLATE utf8mb4_unicode_ci = a.package_name COLLATE utf8mb4_unicode_ci
- AND sss.session_stamp COLLATE utf8mb4_unicode_ci = sar.session_stamp COLLATE utf8mb4_unicode_ci
-LEFT JOIN (
-  SELECT
-    pa.static_run_id,
-    COUNT(*) AS audit_rows,
-    MAX(pa.grade) AS grade,
-    MAX(pa.score_capped) AS score_capped,
-    MAX(pa.dangerous_count) AS dangerous_count,
-    MAX(pa.signature_count) AS signature_count,
-    MAX(pa.vendor_count) AS vendor_count,
-    MAX(pas.created_at) AS audit_created_at
-  FROM permission_audit_apps pa
-  JOIN permission_audit_snapshots pas ON pas.snapshot_id = pa.snapshot_id
-  GROUP BY pa.static_run_id
-) audits
-  ON audits.static_run_id = sar.id
-LEFT JOIN (
-  SELECT
-    static_run_id,
-    COUNT(*) AS link_rows
-  FROM static_session_run_links
-  GROUP BY static_run_id
-) links
-  ON links.static_run_id = sar.id
-WHERE a.package_name = :pkg_runs
-ORDER BY sar.created_at DESC
+  package_name,
+  static_run_id,
+  session_stamp,
+  created_at,
+  run_status,
+  profile,
+  findings_total,
+  non_canonical_reasons,
+  high,
+  med,
+  low,
+  info,
+  permission_rows,
+  high_entropy,
+  endpoints,
+  string_rows,
+  grade,
+  score_capped,
+  audit_created_at,
+  audit_rows,
+  dangerous_count,
+  signature_count,
+  vendor_count,
+  link_rows,
+  session_usability,
+  is_usable_complete,
+  session_preference_rank,
+  session_recency_rank
+FROM v_web_app_sessions
+WHERE package_name = :pkg_runs
+ORDER BY session_recency_rank ASC, created_at DESC
 SQL;
 
 const SQL_APP_FINDINGS_SUMMARY = <<<SQL
@@ -392,90 +312,78 @@ SELECT
   latest.app_label,
   latest.session_stamp,
   latest.version_name,
-  LOWER(COALESCE(f.severity, 'info')) AS severity,
-  COALESCE(f.category, 'Uncategorized') AS category,
-  COALESCE(f.detector, 'unknown') AS detector,
-  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area,
-  f.title,
-  f.evidence,
-  f.fix,
-  f.cvss_score
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  latest.severity,
+  latest.category,
+  latest.detector,
+  latest.masvs_area,
+  latest.title,
+  latest.evidence,
+  latest.fix,
+  NULL AS cvss_score
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_COUNT = <<<SQL
 SELECT COUNT(*) AS c
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_GROUP_TITLE_BASE = <<<SQL
 SELECT
-  f.title AS group_value,
+  latest.title AS group_value,
   COUNT(*) AS finding_rows,
   COUNT(DISTINCT latest.package_name) AS affected_apps,
-  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity,
-  COALESCE(f.category, 'Uncategorized') AS category,
-  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  MAX(latest.severity) AS dominant_severity,
+  latest.category AS category,
+  latest.masvs_area AS masvs_area
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_GROUP_DETECTOR_BASE = <<<SQL
 SELECT
-  COALESCE(f.detector, 'unknown') AS group_value,
+  latest.detector AS group_value,
   COUNT(*) AS finding_rows,
   COUNT(DISTINCT latest.package_name) AS affected_apps,
-  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity,
-  COALESCE(f.category, 'Uncategorized') AS category,
-  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  MAX(latest.severity) AS dominant_severity,
+  latest.category AS category,
+  latest.masvs_area AS masvs_area
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_GROUP_APP_BASE = <<<SQL
 SELECT
-  latest.app_label AS group_value,
-  latest.package_name,
+  app_label AS group_value,
+  package_name,
   COUNT(*) AS finding_rows,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high_rows,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low_rows,
-  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  MAX(severity) AS dominant_severity
+FROM v_web_app_findings
 SQL;
 
 const SQL_FINDINGS_EXPLORER_GROUP_MASVS_BASE = <<<SQL
 SELECT
-  COALESCE(f.masvs_area, 'Unmapped') AS group_value,
+  masvs_area AS group_value,
   COUNT(*) AS finding_rows,
-  COUNT(DISTINCT latest.package_name) AS affected_apps,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high_rows,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low_rows
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
+  COUNT(DISTINCT package_name) AS affected_apps,
+  SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) AS low_rows
+FROM v_web_app_findings
 SQL;
 
 const SQL_FINDINGS_EXPLORER_ORDER = <<<SQL
 ORDER BY
-  CASE LOWER(COALESCE(f.severity, ''))
+  CASE severity
     WHEN 'critical' THEN 1
     WHEN 'high' THEN 2
     WHEN 'medium' THEN 3
     WHEN 'low' THEN 4
     ELSE 5
   END,
-  latest.app_label ASC,
-  f.title ASC
+  app_label ASC,
+  title ASC
 SQL;
 
 const SQL_FINDINGS_GROUP_TITLE_ORDER = <<<SQL
@@ -495,29 +403,23 @@ ORDER BY high_rows DESC, finding_rows DESC, group_value ASC
 SQL;
 
 const SQL_FINDINGS_CATEGORIES = <<<SQL
-SELECT DISTINCT COALESCE(f.category, 'Uncategorized') AS category
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
-WHERE COALESCE(f.category, '') <> ''
+SELECT DISTINCT category
+FROM v_web_app_findings
+WHERE COALESCE(category, '') <> ''
 ORDER BY category ASC
 SQL;
 
 const SQL_FINDINGS_MASVS_AREAS = <<<SQL
-SELECT DISTINCT COALESCE(f.masvs_area, 'Unmapped') AS masvs_area
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
-WHERE COALESCE(f.masvs_area, '') <> ''
+SELECT DISTINCT masvs_area
+FROM v_web_app_findings
+WHERE COALESCE(masvs_area, '') <> ''
 ORDER BY masvs_area ASC
 SQL;
 
 const SQL_FINDINGS_DETECTORS = <<<SQL
-SELECT DISTINCT COALESCE(f.detector, 'unknown') AS detector
-FROM vw_static_finding_surfaces_latest latest
-JOIN static_analysis_findings f
-  ON f.run_id = latest.static_run_id
-WHERE COALESCE(f.detector, '') <> ''
+SELECT DISTINCT detector
+FROM v_web_app_findings
+WHERE COALESCE(detector, '') <> ''
 ORDER BY detector ASC
 SQL;
 
@@ -656,52 +558,18 @@ SQL;
 
 const SQL_STATIC_SESSION_HEALTH = <<<SQL
 SELECT
-  sar.session_stamp,
-  MAX(sar.created_at) AS created_at,
-  MAX(COALESCE(sar.status, 'UNKNOWN')) AS status,
-  COUNT(*) AS app_runs,
-  SUM(CASE WHEN COALESCE(f.c, 0) > 0 THEN 1 ELSE 0 END) AS findings_ready,
-  SUM(CASE WHEN COALESCE(pm.c, 0) > 0 THEN 1 ELSE 0 END) AS permissions_ready,
-  SUM(CASE WHEN COALESCE(ss.c, 0) > 0 THEN 1 ELSE 0 END) AS strings_ready,
-  SUM(CASE WHEN COALESCE(pa.c, 0) > 0 THEN 1 ELSE 0 END) AS audit_ready,
-  SUM(CASE WHEN COALESCE(links.c, 0) > 0 THEN 1 ELSE 0 END) AS link_ready
-FROM static_analysis_runs sar
-JOIN app_versions av
-  ON av.id = sar.app_version_id
-JOIN apps a
-  ON a.id = av.app_id
-LEFT JOIN (
-  SELECT run_id, COUNT(*) AS c
-  FROM static_analysis_findings
-  GROUP BY run_id
-) f
-  ON f.run_id = sar.id
-LEFT JOIN (
-  SELECT run_id, COUNT(*) AS c
-  FROM static_permission_matrix
-  GROUP BY run_id
-) pm
-  ON pm.run_id = sar.id
-LEFT JOIN (
-  SELECT package_name, session_stamp, COUNT(*) AS c
-  FROM static_string_summary
-  GROUP BY package_name, session_stamp
-) ss
-  ON ss.package_name COLLATE utf8mb4_unicode_ci = a.package_name COLLATE utf8mb4_unicode_ci
- AND ss.session_stamp COLLATE utf8mb4_unicode_ci = sar.session_stamp COLLATE utf8mb4_unicode_ci
-LEFT JOIN (
-  SELECT static_run_id, COUNT(*) AS c
-  FROM permission_audit_apps
-  GROUP BY static_run_id
-) pa
-  ON pa.static_run_id = sar.id
-LEFT JOIN (
-  SELECT static_run_id, COUNT(*) AS c
-  FROM static_session_run_links
-  GROUP BY static_run_id
-) links
-  ON links.static_run_id = sar.id
-GROUP BY sar.session_stamp
+  session_stamp,
+  created_at,
+  status,
+  app_runs,
+  findings_ready,
+  permissions_ready,
+  strings_ready,
+  audit_ready,
+  link_ready,
+  session_usability,
+  is_usable_complete
+FROM v_web_static_session_health
 ORDER BY created_at DESC
 SQL;
 

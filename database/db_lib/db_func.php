@@ -34,15 +34,15 @@ const _RUNTIME_RUN_FILTERS = [
 ];
 
 const _FINDINGS_EXPLORER_FILTERS = [
-    'severity' => ['LOWER(COALESCE(f.severity, \'\')) = LOWER(:severity)'],
-    'category' => ['COALESCE(f.category, \'Uncategorized\') = :category'],
-    'masvs_area' => ['COALESCE(f.masvs_area, \'Unmapped\') = :masvs_area'],
-    'detector' => ['COALESCE(f.detector, \'unknown\') = :detector'],
+    'severity' => ['LOWER(COALESCE(latest.severity, \'\')) = LOWER(:severity)'],
+    'category' => ['COALESCE(latest.category, \'Uncategorized\') = :category'],
+    'masvs_area' => ['COALESCE(latest.masvs_area, \'Unmapped\') = :masvs_area'],
+    'detector' => ['COALESCE(latest.detector, \'unknown\') = :detector'],
     'q' => [
         '('
         . 'CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
         . 'OR CONVERT(latest.app_label USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
-        . 'OR CONVERT(f.title USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_title AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
+        . 'OR CONVERT(latest.title USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_title AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
         . ')',
         'like',
     ],
@@ -451,7 +451,7 @@ function findings_explorer_paged_v2(
         $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
     }
     if (!$includeSynthetic) {
-        $clauses[] = "NOT (COALESCE(f.detector, '') = 'correlation_engine' OR COALESCE(f.title, '') LIKE 'Composite risk — %')";
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
     }
     $finalWhere = $clauses ? ('WHERE ' . implode(' AND ', $clauses)) : '';
 
@@ -594,19 +594,19 @@ function findings_explorer_grouped(
         $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
     }
     if (!$includeSynthetic) {
-        $clauses[] = "NOT (COALESCE(f.detector, '') = 'correlation_engine' OR COALESCE(f.title, '') LIKE 'Composite risk — %')";
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
     }
     $finalWhere = $clauses ? ('WHERE ' . implode(' AND ', $clauses)) : '';
 
     $map = [
         'title' => [
             'base' => SQL_FINDINGS_EXPLORER_GROUP_TITLE_BASE,
-            'group' => 'GROUP BY f.title, COALESCE(f.category, \'Uncategorized\'), COALESCE(f.masvs_area, \'Unmapped\')',
+            'group' => 'GROUP BY latest.title, latest.category, latest.masvs_area',
             'order' => SQL_FINDINGS_GROUP_TITLE_ORDER,
         ],
         'detector' => [
             'base' => SQL_FINDINGS_EXPLORER_GROUP_DETECTOR_BASE,
-            'group' => 'GROUP BY COALESCE(f.detector, \'unknown\'), COALESCE(f.category, \'Uncategorized\'), COALESCE(f.masvs_area, \'Unmapped\')',
+            'group' => 'GROUP BY latest.detector, latest.category, latest.masvs_area',
             'order' => SQL_FINDINGS_GROUP_DETECTOR_ORDER,
         ],
         'app' => [
@@ -616,7 +616,7 @@ function findings_explorer_grouped(
         ],
         'masvs_area' => [
             'base' => SQL_FINDINGS_EXPLORER_GROUP_MASVS_BASE,
-            'group' => 'GROUP BY COALESCE(f.masvs_area, \'Unmapped\')',
+            'group' => 'GROUP BY latest.masvs_area',
             'order' => SQL_FINDINGS_GROUP_MASVS_ORDER,
         ],
     ];

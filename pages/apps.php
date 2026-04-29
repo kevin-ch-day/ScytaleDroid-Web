@@ -55,6 +55,10 @@ foreach ($rows as $r) {
     }
 }
 
+$directoryStateSummary = $catalogOnlyCount > 0
+    ? 'Showing analyzed apps first with optional inventory-only related packages.'
+    : 'Showing packages with finalized analysis-facing data.';
+
 $analyzedRows = array_values(array_filter($rows, static fn(array $r): bool => (string)($r['source_state'] ?? '') !== 'catalog_only'));
 $catalogOnlyRows = array_values(array_filter($rows, static fn(array $r): bool => (string)($r['source_state'] ?? '') === 'catalog_only'));
 $groupSearchResults = $q !== null && $includeCatalogOnly && !empty($catalogOnlyRows) && !empty($analyzedRows);
