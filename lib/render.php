@@ -224,6 +224,22 @@ function score_display_meta(?string $grade, $scoreCapped, ?string $sourceState =
     ];
 }
 
+function permission_custom_family_label(?string $family): string
+{
+    return match (strtolower(trim((string)$family))) {
+        'app_defined_internal' => 'App Defined Internal',
+        'vendor_oem' => 'Vendor / OEM',
+        'google_platform_adjacent' => 'Google / Platform Adjacent',
+        'launcher_badge' => 'Launcher / Badge Ecosystem',
+        'amazon_ecosystem' => 'Amazon Ecosystem',
+        'android_platform_adjacent' => 'Android Platform Adjacent',
+        'meta_ecosystem' => 'Meta Ecosystem',
+        'publisher_ecosystem' => 'Publisher Ecosystem',
+        'unknown_custom' => 'Unknown Custom',
+        default => $family !== null && trim((string)$family) !== '' ? ucwords(str_replace('_', ' ', (string)$family)) : '—',
+    };
+}
+
 function score_chip(?string $grade, $scoreCapped, ?string $sourceState = null): string
 {
     $meta = score_display_meta($grade, $scoreCapped, $sourceState);

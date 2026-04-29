@@ -501,7 +501,16 @@ SELECT
   SUM(CASE WHEN is_signature = 1 THEN 1 ELSE 0 END) AS signature_rows,
   SUM(CASE WHEN is_privileged = 1 THEN 1 ELSE 0 END) AS privileged_rows,
   SUM(CASE WHEN is_custom = 1 THEN 1 ELSE 0 END) AS custom_rows
-FROM static_permission_matrix
+FROM v_web_permission_intel_current
+SQL;
+
+const SQL_PERMISSION_INTEL_SESSION_OPTIONS = <<<SQL
+SELECT DISTINCT session_stamp
+FROM v_web_app_sessions
+WHERE session_hidden_by_default = 0
+  AND session_usability = 'usable_complete'
+  AND COALESCE(session_stamp, '') <> ''
+ORDER BY session_stamp DESC
 SQL;
 
 const SQL_PERMISSION_INTEL_TOP_DANGEROUS = <<<SQL
@@ -510,7 +519,7 @@ SELECT
   COUNT(DISTINCT package_name) AS app_count,
   MAX(source) AS source,
   MAX(protection) AS protection
-FROM static_permission_matrix
+FROM v_web_permission_intel_current
 WHERE is_runtime_dangerous = 1
 GROUP BY permission_name
 ORDER BY app_count DESC, permission_name ASC
@@ -522,7 +531,7 @@ SELECT
   COUNT(*) AS permission_rows,
   COUNT(DISTINCT permission_name) AS distinct_permissions,
   COUNT(DISTINCT package_name) AS app_count
-FROM static_permission_matrix
+FROM v_web_permission_intel_current
 GROUP BY source
 ORDER BY permission_rows DESC, source ASC
 SQL;
@@ -532,7 +541,7 @@ SELECT
   protection,
   COUNT(*) AS permission_rows,
   COUNT(DISTINCT permission_name) AS distinct_permissions
-FROM static_permission_matrix
+FROM v_web_permission_intel_current
 GROUP BY protection
 ORDER BY permission_rows DESC, protection ASC
 SQL;
@@ -560,7 +569,7 @@ FROM (
     MAX(CASE WHEN permission_name = 'android.permission.GET_ACCOUNTS' THEN 1 ELSE 0 END) AS has_accounts,
     MAX(CASE WHEN permission_name = 'com.google.android.gms.permission.AD_ID' THEN 1 ELSE 0 END) AS has_ad_id,
     MAX(CASE WHEN permission_name IN ('android.permission.READ_MEDIA_IMAGES', 'android.permission.READ_MEDIA_VIDEO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE') THEN 1 ELSE 0 END) AS has_media
-  FROM static_permission_matrix
+  FROM v_web_permission_intel_current
   GROUP BY package_name
 ) combos
 WHERE (
