@@ -37,6 +37,7 @@ const _FINDINGS_EXPLORER_FILTERS = [
     'severity' => ['LOWER(COALESCE(f.severity, \'\')) = LOWER(:severity)'],
     'category' => ['COALESCE(f.category, \'Uncategorized\') = :category'],
     'masvs_area' => ['COALESCE(f.masvs_area, \'Unmapped\') = :masvs_area'],
+    'detector' => ['COALESCE(f.detector, \'unknown\') = :detector'],
     'q' => [
         '('
         . 'CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
@@ -182,7 +183,9 @@ function apps_directory_paged(?string $category, ?string $q, int $page, int $siz
         SQL_APPS_DIR_ORDER,
         $params,
         $page,
-        $size
+        $size,
+        60,
+        'apps_directory_' . sha1(json_encode([$where, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
     );
 }
 
@@ -193,7 +196,9 @@ function apps_directory_paged(?string $category, ?string $q, int $page, int $siz
  */
 function fleet_dashboard_overview(): array
 {
-    return db_one(SQL_DASHBOARD_OVERVIEW) ?? [];
+    return web_cache_remember('fleet_dashboard_overview_v1', 60, static function (): array {
+        return db_one(SQL_DASHBOARD_OVERVIEW) ?? [];
+    });
 }
 
 /**
@@ -202,8 +207,10 @@ function fleet_dashboard_overview(): array
 function fleet_category_summary(int $limit = 8): array
 {
     $limit = _positive_limit($limit, 30);
-    $sql = SQL_DASHBOARD_CATEGORY_SUMMARY . " LIMIT $limit";
-    return db_all($sql);
+    return web_cache_remember("fleet_category_summary_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_DASHBOARD_CATEGORY_SUMMARY . " LIMIT $limit";
+        return db_all($sql);
+    });
 }
 
 /**
@@ -212,8 +219,10 @@ function fleet_category_summary(int $limit = 8): array
 function fleet_recurring_findings(int $limit = 10): array
 {
     $limit = _positive_limit($limit, 50);
-    $sql = SQL_DASHBOARD_RECURRING_FINDINGS . " LIMIT $limit";
-    return db_all($sql);
+    return web_cache_remember("fleet_recurring_findings_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_DASHBOARD_RECURRING_FINDINGS . " LIMIT $limit";
+        return db_all($sql);
+    });
 }
 
 /**
@@ -223,7 +232,9 @@ function fleet_recurring_findings(int $limit = 10): array
  */
 function runtime_deviation_overview(): array
 {
-    return db_one(SQL_RUNTIME_OVERVIEW) ?? [];
+    return web_cache_remember('runtime_deviation_overview_v1', 60, static function (): array {
+        return db_one(SQL_RUNTIME_OVERVIEW) ?? [];
+    });
 }
 
 /**
@@ -390,6 +401,7 @@ function findings_explorer_paged(?string $severity, ?string $category, ?string $
         'severity' => $severity,
         'category' => $category,
         'masvs_area' => $masvsArea,
+        'detector' => null,
         'q' => $q,
     ]);
 
@@ -400,7 +412,54 @@ function findings_explorer_paged(?string $severity, ?string $category, ?string $
         SQL_FINDINGS_EXPLORER_ORDER,
         $params,
         $page,
-        $size
+        $size,
+        60,
+        'findings_explorer_' . sha1(json_encode([$where, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
+    );
+}
+
+/**
+ * Latest findings explorer with detector filter and optional synthetic rollups.
+ *
+ * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
+ */
+function findings_explorer_paged_v2(
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $q,
+    bool $includeSynthetic,
+    int $page,
+    int $size
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'q' => $q,
+    ]);
+
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(f.detector, '') = 'correlation_engine' OR COALESCE(f.title, '') LIKE 'Composite risk — %')";
+    }
+    $finalWhere = $clauses ? ('WHERE ' . implode(' AND ', $clauses)) : '';
+
+    return db_paged(
+        SQL_FINDINGS_EXPLORER_BASE,
+        SQL_FINDINGS_EXPLORER_COUNT,
+        $finalWhere,
+        SQL_FINDINGS_EXPLORER_ORDER,
+        $params,
+        $page,
+        $size,
+        60,
+        'findings_explorer_v2_' . sha1(json_encode([$finalWhere, $params, $includeSynthetic], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $finalWhere)
     );
 }
 
@@ -409,10 +468,12 @@ function findings_explorer_paged(?string $severity, ?string $category, ?string $
  */
 function findings_categories(): array
 {
-    return array_values(array_map(
-        static fn(array $row): string => (string)($row['category'] ?? ''),
-        db_all(SQL_FINDINGS_CATEGORIES)
-    ));
+    return web_cache_remember('findings_categories_v1', 300, static function (): array {
+        return array_values(array_map(
+            static fn(array $row): string => (string)($row['category'] ?? ''),
+            db_all(SQL_FINDINGS_CATEGORIES)
+        ));
+    });
 }
 
 /**
@@ -420,10 +481,156 @@ function findings_categories(): array
  */
 function findings_masvs_areas(): array
 {
-    return array_values(array_map(
-        static fn(array $row): string => (string)($row['masvs_area'] ?? ''),
-        db_all(SQL_FINDINGS_MASVS_AREAS)
-    ));
+    return web_cache_remember('findings_masvs_areas_v1', 300, static function (): array {
+        return array_values(array_map(
+            static fn(array $row): string => (string)($row['masvs_area'] ?? ''),
+            db_all(SQL_FINDINGS_MASVS_AREAS)
+        ));
+    });
+}
+
+/**
+ * @return array<int,string>
+ */
+function findings_detectors(): array
+{
+    return web_cache_remember('findings_detectors_v1', 300, static function (): array {
+        return array_values(array_map(
+            static fn(array $row): string => (string)($row['detector'] ?? ''),
+            db_all(SQL_FINDINGS_DETECTORS)
+        ));
+    });
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function permission_intel_overview(): array
+{
+    return web_cache_remember('permission_intel_overview_v1', 120, static function (): array {
+        return db_one(SQL_PERMISSION_INTEL_OVERVIEW) ?? [];
+    });
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function permission_intel_top_dangerous(int $limit = 15): array
+{
+    $limit = _positive_limit($limit, 50);
+    return web_cache_remember("permission_intel_top_dangerous_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_PERMISSION_INTEL_TOP_DANGEROUS . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function permission_intel_source_breakdown(int $limit = 12): array
+{
+    $limit = _positive_limit($limit, 30);
+    return web_cache_remember("permission_intel_source_breakdown_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_PERMISSION_INTEL_SOURCE_BREAKDOWN . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function permission_intel_protection_breakdown(int $limit = 12): array
+{
+    $limit = _positive_limit($limit, 30);
+    return web_cache_remember("permission_intel_protection_breakdown_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_PERMISSION_INTEL_PROTECTION_BREAKDOWN . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function permission_intel_sensitive_combos(int $limit = 10): array
+{
+    $limit = _positive_limit($limit, 20);
+    return web_cache_remember("permission_intel_sensitive_combos_v1_{$limit}", 120, static function () use ($limit): array {
+        $sql = SQL_PERMISSION_INTEL_SENSITIVE_COMBOS . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * Group findings for fleet pattern discovery.
+ *
+ * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
+ */
+function findings_explorer_grouped(
+    string $groupBy,
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $q,
+    bool $includeSynthetic,
+    int $page,
+    int $size
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'q' => $q,
+    ]);
+
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(f.detector, '') = 'correlation_engine' OR COALESCE(f.title, '') LIKE 'Composite risk — %')";
+    }
+    $finalWhere = $clauses ? ('WHERE ' . implode(' AND ', $clauses)) : '';
+
+    $map = [
+        'title' => [
+            'base' => SQL_FINDINGS_EXPLORER_GROUP_TITLE_BASE,
+            'group' => 'GROUP BY f.title, COALESCE(f.category, \'Uncategorized\'), COALESCE(f.masvs_area, \'Unmapped\')',
+            'order' => SQL_FINDINGS_GROUP_TITLE_ORDER,
+        ],
+        'detector' => [
+            'base' => SQL_FINDINGS_EXPLORER_GROUP_DETECTOR_BASE,
+            'group' => 'GROUP BY COALESCE(f.detector, \'unknown\'), COALESCE(f.category, \'Uncategorized\'), COALESCE(f.masvs_area, \'Unmapped\')',
+            'order' => SQL_FINDINGS_GROUP_DETECTOR_ORDER,
+        ],
+        'app' => [
+            'base' => SQL_FINDINGS_EXPLORER_GROUP_APP_BASE,
+            'group' => 'GROUP BY latest.app_label, latest.package_name',
+            'order' => SQL_FINDINGS_GROUP_APP_ORDER,
+        ],
+        'masvs_area' => [
+            'base' => SQL_FINDINGS_EXPLORER_GROUP_MASVS_BASE,
+            'group' => 'GROUP BY COALESCE(f.masvs_area, \'Unmapped\')',
+            'order' => SQL_FINDINGS_GROUP_MASVS_ORDER,
+        ],
+    ];
+    $spec = $map[$groupBy] ?? $map['title'];
+    $inner = $spec['base'] . ' ' . $finalWhere . ' ' . $spec['group'];
+    $baseSql = 'SELECT * FROM (' . $inner . ') grouped';
+    $countSql = 'SELECT COUNT(*) AS c FROM (' . $inner . ') grouped';
+
+    return db_paged(
+        $baseSql,
+        $countSql,
+        '',
+        $spec['order'],
+        $params,
+        $page,
+        $size,
+        60,
+        'findings_grouped_' . sha1(json_encode([$groupBy, $inner, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $groupBy)
+    );
 }
 
 /**
@@ -466,7 +673,9 @@ function component_exposure_paged(?string $exported, ?string $guard, ?string $q,
         SQL_COMPONENT_EXPOSURE_ORDER,
         $params,
         $page,
-        $size
+        $size,
+        60,
+        'component_exposure_' . sha1(json_encode([$where, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
     );
 }
 

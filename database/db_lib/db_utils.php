@@ -211,9 +211,21 @@ function sql_filters(array $filters, array $map): array
  * @param array<string,mixed> $params   Params from sql_filters().
  * @param int                 $page     1-indexed page number.
  * @param int                 $size     Page size.
+ * @param int                 $countCacheTtl Optional TTL for count query caching.
+ * @param string|null         $countCacheKey Optional stable cache-key suffix for count queries.
  * @return array{rows:array<int,array<string,mixed>>, total:int, page:int, size:int}
  */
-function db_paged(string $baseSql, string $countSql, string $where, string $orderBy, array $params, int $page, int $size): array
+function db_paged(
+    string $baseSql,
+    string $countSql,
+    string $where,
+    string $orderBy,
+    array $params,
+    int $page,
+    int $size,
+    int $countCacheTtl = 0,
+    ?string $countCacheKey = null
+): array
 {
     // validate numbers
     $size   = max(1, (int)$size);
@@ -223,8 +235,20 @@ function db_paged(string $baseSql, string $countSql, string $where, string $orde
     // Inline LIMIT/OFFSET (never bind these in MySQL)
     $limitSql = trim($orderBy) . " LIMIT $size OFFSET $offset";
 
-    $rows  = db_all("$baseSql $where $limitSql", $params);
-    $total = (int)(db_col("$countSql $where", $params, 'c') ?? 0);
+    $rows = db_all("$baseSql $where $limitSql", $params);
+    $countLoader = static function () use ($countSql, $where, $params): int {
+        return (int)(db_col("$countSql $where", $params, 'c') ?? 0);
+    };
+    if ($countCacheTtl > 0) {
+        $cacheKey = $countCacheKey ?: sha1(json_encode([
+            'countSql' => $countSql,
+            'where' => $where,
+            'params' => $params,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $countSql . $where);
+        $total = (int)web_cache_remember("db_paged_count_v1_{$cacheKey}", $countCacheTtl, $countLoader);
+    } else {
+        $total = $countLoader();
+    }
 
     return [
         'rows'  => $rows,
@@ -232,4 +256,52 @@ function db_paged(string $baseSql, string $countSql, string $where, string $orde
         'page'  => $page,
         'size'  => $size,
     ];
+}
+
+/**
+ * Small file-backed cache for read-only web query results.
+ *
+ * @template T
+ * @param string $key
+ * @param int $ttlSeconds
+ * @param callable():T $loader
+ * @return T
+ */
+function web_cache_remember(string $key, int $ttlSeconds, callable $loader)
+{
+    static $memo = [];
+    $ttlSeconds = max(1, $ttlSeconds);
+    $safeKey = preg_replace('/[^A-Za-z0-9_.-]/', '_', $key) ?? md5($key);
+    $cacheDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'scytaledroid-web-cache';
+    $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . $safeKey . '.cache.php';
+    $now = time();
+
+    if (array_key_exists($safeKey, $memo)) {
+        $entry = $memo[$safeKey];
+        if (is_array($entry) && (int)($entry['expires_at'] ?? 0) >= $now) {
+            return $entry['value'];
+        }
+    }
+
+    if (is_file($cacheFile)) {
+        $entry = @include $cacheFile;
+        if (is_array($entry) && (int)($entry['expires_at'] ?? 0) >= $now) {
+            $memo[$safeKey] = $entry;
+            return $entry['value'];
+        }
+    }
+
+    $value = $loader();
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0775, true);
+    }
+    $entry = [
+        'expires_at' => $now + $ttlSeconds,
+        'value' => $value,
+    ];
+    $payload = '<?php return ' . var_export($entry, true) . ';';
+    @file_put_contents($cacheFile, $payload, LOCK_EX);
+    $memo[$safeKey] = $entry;
+
+    return $value;
 }

@@ -25,7 +25,7 @@
             aria-label="Package name"
           >
           <button type="submit" class="btn btn-primary">Open App</button>
-          <a class="btn-ghost" href="<?= e(url('pages/index.php')) ?>">Apps Directory</a>
+          <a class="btn-ghost" href="<?= e(url('pages/apps.php')) ?>">Apps Directory</a>
         </div>
       </form>
       <?php if (!empty($packageName)): ?>

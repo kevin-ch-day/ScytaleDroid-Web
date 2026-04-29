@@ -4,7 +4,6 @@
 // $packageName (string), $activeSession (?string), $activeTab (string)
 $tabBase = [
   'report' => 'app_report.php',
-  'overview' => 'view_app.php',
   'findings' => 'app_findings.php',
   'permissions' => 'app_permissions.php',
   'strings' => 'app_strings.php',

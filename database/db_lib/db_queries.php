@@ -113,12 +113,6 @@ SELECT
   latest_strings.certs,
   latest_strings.high_entropy
 FROM v_web_app_directory dir
-LEFT JOIN apps a
-  ON a.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
-LEFT JOIN android_app_categories cat
-  ON cat.category_id = a.category_id
-LEFT JOIN android_app_profiles ap
-  ON ap.profile_key = a.profile_key
 LEFT JOIN vw_static_finding_surfaces_latest findings
   ON findings.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
  AND findings.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
@@ -418,6 +412,59 @@ JOIN static_analysis_findings f
   ON f.run_id = latest.static_run_id
 SQL;
 
+const SQL_FINDINGS_EXPLORER_GROUP_TITLE_BASE = <<<SQL
+SELECT
+  f.title AS group_value,
+  COUNT(*) AS finding_rows,
+  COUNT(DISTINCT latest.package_name) AS affected_apps,
+  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity,
+  COALESCE(f.category, 'Uncategorized') AS category,
+  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area
+FROM vw_static_finding_surfaces_latest latest
+JOIN static_analysis_findings f
+  ON f.run_id = latest.static_run_id
+SQL;
+
+const SQL_FINDINGS_EXPLORER_GROUP_DETECTOR_BASE = <<<SQL
+SELECT
+  COALESCE(f.detector, 'unknown') AS group_value,
+  COUNT(*) AS finding_rows,
+  COUNT(DISTINCT latest.package_name) AS affected_apps,
+  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity,
+  COALESCE(f.category, 'Uncategorized') AS category,
+  COALESCE(f.masvs_area, 'Unmapped') AS masvs_area
+FROM vw_static_finding_surfaces_latest latest
+JOIN static_analysis_findings f
+  ON f.run_id = latest.static_run_id
+SQL;
+
+const SQL_FINDINGS_EXPLORER_GROUP_APP_BASE = <<<SQL
+SELECT
+  latest.app_label AS group_value,
+  latest.package_name,
+  COUNT(*) AS finding_rows,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  MAX(LOWER(COALESCE(f.severity, 'info'))) AS dominant_severity
+FROM vw_static_finding_surfaces_latest latest
+JOIN static_analysis_findings f
+  ON f.run_id = latest.static_run_id
+SQL;
+
+const SQL_FINDINGS_EXPLORER_GROUP_MASVS_BASE = <<<SQL
+SELECT
+  COALESCE(f.masvs_area, 'Unmapped') AS group_value,
+  COUNT(*) AS finding_rows,
+  COUNT(DISTINCT latest.package_name) AS affected_apps,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low_rows
+FROM vw_static_finding_surfaces_latest latest
+JOIN static_analysis_findings f
+  ON f.run_id = latest.static_run_id
+SQL;
+
 const SQL_FINDINGS_EXPLORER_ORDER = <<<SQL
 ORDER BY
   CASE LOWER(COALESCE(f.severity, ''))
@@ -429,6 +476,22 @@ ORDER BY
   END,
   latest.app_label ASC,
   f.title ASC
+SQL;
+
+const SQL_FINDINGS_GROUP_TITLE_ORDER = <<<SQL
+ORDER BY affected_apps DESC, finding_rows DESC, group_value ASC
+SQL;
+
+const SQL_FINDINGS_GROUP_DETECTOR_ORDER = <<<SQL
+ORDER BY finding_rows DESC, affected_apps DESC, group_value ASC
+SQL;
+
+const SQL_FINDINGS_GROUP_APP_ORDER = <<<SQL
+ORDER BY high_rows DESC, finding_rows DESC, group_value ASC
+SQL;
+
+const SQL_FINDINGS_GROUP_MASVS_ORDER = <<<SQL
+ORDER BY high_rows DESC, finding_rows DESC, group_value ASC
 SQL;
 
 const SQL_FINDINGS_CATEGORIES = <<<SQL
@@ -449,12 +512,104 @@ WHERE COALESCE(f.masvs_area, '') <> ''
 ORDER BY masvs_area ASC
 SQL;
 
+const SQL_FINDINGS_DETECTORS = <<<SQL
+SELECT DISTINCT COALESCE(f.detector, 'unknown') AS detector
+FROM vw_static_finding_surfaces_latest latest
+JOIN static_analysis_findings f
+  ON f.run_id = latest.static_run_id
+WHERE COALESCE(f.detector, '') <> ''
+ORDER BY detector ASC
+SQL;
+
+const SQL_PERMISSION_INTEL_OVERVIEW = <<<SQL
+SELECT
+  COUNT(*) AS permission_rows,
+  COUNT(DISTINCT package_name) AS apps_with_permissions,
+  COUNT(DISTINCT permission_name) AS distinct_permissions,
+  SUM(CASE WHEN is_runtime_dangerous = 1 THEN 1 ELSE 0 END) AS dangerous_rows,
+  SUM(CASE WHEN is_signature = 1 THEN 1 ELSE 0 END) AS signature_rows,
+  SUM(CASE WHEN is_privileged = 1 THEN 1 ELSE 0 END) AS privileged_rows,
+  SUM(CASE WHEN is_custom = 1 THEN 1 ELSE 0 END) AS custom_rows
+FROM static_permission_matrix
+SQL;
+
+const SQL_PERMISSION_INTEL_TOP_DANGEROUS = <<<SQL
+SELECT
+  permission_name,
+  COUNT(DISTINCT package_name) AS app_count,
+  MAX(source) AS source,
+  MAX(protection) AS protection
+FROM static_permission_matrix
+WHERE is_runtime_dangerous = 1
+GROUP BY permission_name
+ORDER BY app_count DESC, permission_name ASC
+SQL;
+
+const SQL_PERMISSION_INTEL_SOURCE_BREAKDOWN = <<<SQL
+SELECT
+  source,
+  COUNT(*) AS permission_rows,
+  COUNT(DISTINCT permission_name) AS distinct_permissions,
+  COUNT(DISTINCT package_name) AS app_count
+FROM static_permission_matrix
+GROUP BY source
+ORDER BY permission_rows DESC, source ASC
+SQL;
+
+const SQL_PERMISSION_INTEL_PROTECTION_BREAKDOWN = <<<SQL
+SELECT
+  protection,
+  COUNT(*) AS permission_rows,
+  COUNT(DISTINCT permission_name) AS distinct_permissions
+FROM static_permission_matrix
+GROUP BY protection
+ORDER BY permission_rows DESC, protection ASC
+SQL;
+
+const SQL_PERMISSION_INTEL_SENSITIVE_COMBOS = <<<SQL
+SELECT
+  CASE
+    WHEN has_location = 1 AND has_contacts = 1 THEN 'Location + Contacts'
+    WHEN has_location = 1 AND has_microphone = 1 THEN 'Location + Microphone'
+    WHEN has_camera = 1 AND has_microphone = 1 THEN 'Camera + Microphone'
+    WHEN has_contacts = 1 AND has_accounts = 1 THEN 'Contacts + Accounts'
+    WHEN has_ad_id = 1 AND has_location = 1 THEN 'Advertising ID + Location'
+    WHEN has_background_location = 1 AND has_media = 1 THEN 'Background Location + Media'
+    ELSE NULL
+  END AS combo_label,
+  COUNT(*) AS app_count
+FROM (
+  SELECT
+    package_name,
+    MAX(CASE WHEN permission_name IN ('android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION') THEN 1 ELSE 0 END) AS has_location,
+    MAX(CASE WHEN permission_name = 'android.permission.ACCESS_BACKGROUND_LOCATION' THEN 1 ELSE 0 END) AS has_background_location,
+    MAX(CASE WHEN permission_name = 'android.permission.RECORD_AUDIO' THEN 1 ELSE 0 END) AS has_microphone,
+    MAX(CASE WHEN permission_name = 'android.permission.CAMERA' THEN 1 ELSE 0 END) AS has_camera,
+    MAX(CASE WHEN permission_name = 'android.permission.READ_CONTACTS' THEN 1 ELSE 0 END) AS has_contacts,
+    MAX(CASE WHEN permission_name = 'android.permission.GET_ACCOUNTS' THEN 1 ELSE 0 END) AS has_accounts,
+    MAX(CASE WHEN permission_name = 'com.google.android.gms.permission.AD_ID' THEN 1 ELSE 0 END) AS has_ad_id,
+    MAX(CASE WHEN permission_name IN ('android.permission.READ_MEDIA_IMAGES', 'android.permission.READ_MEDIA_VIDEO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE') THEN 1 ELSE 0 END) AS has_media
+  FROM static_permission_matrix
+  GROUP BY package_name
+) combos
+WHERE (
+  (has_location = 1 AND has_contacts = 1)
+  OR (has_location = 1 AND has_microphone = 1)
+  OR (has_camera = 1 AND has_microphone = 1)
+  OR (has_contacts = 1 AND has_accounts = 1)
+  OR (has_ad_id = 1 AND has_location = 1)
+  OR (has_background_location = 1 AND has_media = 1)
+)
+GROUP BY combo_label
+ORDER BY app_count DESC, combo_label ASC
+SQL;
+
 const SQL_COMPONENT_EXPOSURE_BASE = <<<SQL
 SELECT
-  dir.package_name,
-  dir.app_label,
-  dir.category,
-  dir.session_stamp,
+  latest.package_name,
+  latest.app_label,
+  COALESCE(cat.category_name, 'Uncategorized') AS category,
+  latest.session_stamp,
   fp.provider_name,
   fp.component_name,
   fp.authority,
@@ -465,24 +620,26 @@ SELECT
   fp.write_permission,
   fp.base_permission,
   fp.created_at
-FROM v_web_app_directory dir
+FROM vw_static_finding_surfaces_latest latest
+LEFT JOIN apps a
+  ON a.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
+LEFT JOIN android_app_categories cat
+  ON cat.category_id = a.category_id
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
-WHERE dir.source_state IN ('static', 'static+permission_audit')
+  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
+ AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_COMPONENT_EXPOSURE_COUNT = <<<SQL
 SELECT COUNT(*) AS c
-FROM v_web_app_directory dir
+FROM vw_static_finding_surfaces_latest latest
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
-WHERE dir.source_state IN ('static', 'static+permission_audit')
+  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
+ AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_COMPONENT_EXPOSURE_ORDER = <<<SQL
-ORDER BY fp.exported DESC, dir.app_label ASC, fp.provider_name ASC
+ORDER BY fp.exported DESC, latest.app_label ASC, fp.provider_name ASC
 SQL;
 
 const SQL_COMPONENT_EXPOSURE_OVERVIEW = <<<SQL
@@ -490,12 +647,11 @@ SELECT
   COUNT(*) AS provider_rows,
   SUM(CASE WHEN fp.exported = 1 THEN 1 ELSE 0 END) AS exported_rows,
   SUM(CASE WHEN fp.exported = 1 AND LOWER(COALESCE(fp.effective_guard, '')) IN ('', 'none', 'weak') THEN 1 ELSE 0 END) AS weak_guard_rows,
-  COUNT(DISTINCT dir.package_name) AS affected_apps
-FROM v_web_app_directory dir
+  COUNT(DISTINCT latest.package_name) AS affected_apps
+FROM vw_static_finding_surfaces_latest latest
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
-WHERE dir.source_state IN ('static', 'static+permission_audit')
+  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
+ AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_STATIC_SESSION_HEALTH = <<<SQL

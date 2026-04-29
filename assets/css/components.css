@@ -157,9 +157,28 @@
     minmax(9rem, .9fr)
     minmax(10rem, 1fr)
     minmax(10rem, 1fr)
+    minmax(10rem, 1fr)
+    minmax(10rem, 1fr)
     minmax(7rem, .8fr)
     auto
+    auto
     auto;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 2.75rem;
+  color: var(--muted);
+  font-size: .9rem;
+  white-space: nowrap;
+}
+
+.inline-check input[type="checkbox"] {
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: var(--brand);
 }
 
 /* ---------- Metrics / Summary Cards ---------- */
