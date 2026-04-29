@@ -69,6 +69,23 @@
   overflow-x: hidden;
   transition: transform .25s ease, opacity .25s ease;
   z-index: 2; /* base layer; mobile overlay lifts to 12 */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--panel-border) 82%, transparent) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--panel-border) 82%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .sidebar-header {
@@ -100,15 +117,34 @@
 
 .sidebar-meta {
   color: var(--muted);
-  font-size: .84rem;
+  font-size: .8rem;
   line-height: 1.4;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: .5rem;
+  gap: 1rem;
   margin: var(--space-3) 0;
+}
+
+.sidebar-section {
+  display: grid;
+  gap: .5rem;
+}
+
+.sidebar-section-title {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 0 .2rem;
+}
+
+.sidebar-section-links {
+  display: grid;
+  gap: .5rem;
 }
 
 .sidebar-link {
@@ -141,7 +177,7 @@
 }
 
 .sidebar-link-desc {
-  font-size: .76rem;
+  font-size: .73rem;
   color: var(--muted);
 }
 

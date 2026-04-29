@@ -72,6 +72,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
                 </div>
 
                 <div class="topbar-actions">
+                    <a href="<?= e(url('pages/index.php')) ?>" class="btn-ghost topbar-home">Home</a>
                     <span class="topbar-chip" data-sidebar-state>Sidebar: Expanded</span>
                     <button type="button" class="btn-ghost" data-theme-toggle data-theme-current="dark">
                         <span class="visually-hidden">Toggle visual theme</span>

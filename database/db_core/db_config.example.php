@@ -1,5 +1,7 @@
 <?php
-// Copy to db_config.php for local development, or set SCYTALEDROID_DB_* env vars.
+// Local-only example.
+// Copy to db_config.php for local development, or prefer SCYTALEDROID_DB_* env vars.
+// Do not commit database/db_core/db_config.php.
 
 const DB_HOST = 'localhost';
 const DB_PORT = 3306;

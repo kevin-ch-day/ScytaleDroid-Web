@@ -10,7 +10,11 @@ require_once __DIR__ . '/../database/db_lib/db_func.php';
  *   package_name:?string,
  *   requested_session:?string,
  *   active_session:?string,
+ *   active_session_usable:bool,
  *   active_session_row:?array<string,mixed>,
+ *   preferred_session:?string,
+ *   preferred_session_row:?array<string,mixed>,
+ *   newer_incomplete_session_row:?array<string,mixed>,
  *   app:?array<string,mixed>,
  *   sessions:array<int,array<string,mixed>>,
  *   error:?string
@@ -25,7 +29,11 @@ function load_app_detail_context(?string $packageRaw, ?string $sessionRaw): arra
         'package_name' => $packageName,
         'requested_session' => $requestedSession,
         'active_session' => null,
+        'active_session_usable' => false,
         'active_session_row' => null,
+        'preferred_session' => null,
+        'preferred_session_row' => null,
+        'newer_incomplete_session_row' => null,
         'app' => null,
         'sessions' => [],
         'error' => null,
@@ -44,31 +52,54 @@ function load_app_detail_context(?string $packageRaw, ?string $sessionRaw): arra
         return $context;
     }
 
-    $activeSession = $requestedSession;
-    if ($activeSession === null && !empty($context['sessions'])) {
-        $activeSession = (string)($context['sessions'][0]['session_stamp'] ?? '');
+    foreach ($context['sessions'] as $row) {
+        if ((int)($row['is_usable_complete'] ?? 0) === 1) {
+            $context['preferred_session_row'] = $row;
+            $context['preferred_session'] = guard_session((string)($row['session_stamp'] ?? ''));
+            break;
+        }
     }
 
-    if ($activeSession === null && is_array($context['app'])) {
-        $activeSession = guard_session(
-            (string)(
-                $context['app']['latest_static_session']
-                ?? $context['app']['latest_audit_session']
-                ?? ''
-            )
-        );
-    }
-
-    if ($activeSession !== null) {
+    $selectedRow = null;
+    if ($requestedSession !== null) {
         foreach ($context['sessions'] as $row) {
-            if ((string)($row['session_stamp'] ?? '') === $activeSession) {
-                $context['active_session_row'] = $row;
+            if ((string)($row['session_stamp'] ?? '') === $requestedSession) {
+                $selectedRow = $row;
                 break;
             }
         }
     }
 
-    $context['active_session'] = $activeSession;
+    if ($selectedRow === null) {
+        if (is_array($context['preferred_session_row'])) {
+            $selectedRow = $context['preferred_session_row'];
+        } elseif (!empty($context['sessions'])) {
+            $selectedRow = $context['sessions'][0];
+        }
+    }
+
+    if ($selectedRow !== null) {
+        $context['active_session_row'] = $selectedRow;
+        $context['active_session'] = guard_session((string)($selectedRow['session_stamp'] ?? ''));
+        $context['active_session_usable'] = (int)($selectedRow['is_usable_complete'] ?? 0) === 1;
+    }
+
+    if (
+        is_array($context['preferred_session_row'])
+        && !empty($context['sessions'])
+    ) {
+        $firstRow = $context['sessions'][0];
+        $firstStamp = (string)($firstRow['session_stamp'] ?? '');
+        $preferredStamp = (string)($context['preferred_session_row']['session_stamp'] ?? '');
+        if (
+            $firstStamp !== ''
+            && $firstStamp !== $preferredStamp
+            && strtolower((string)($firstRow['session_usability'] ?? '')) === 'in_progress_no_rows'
+        ) {
+            $context['newer_incomplete_session_row'] = $firstRow;
+        }
+    }
+
     return $context;
 }
 

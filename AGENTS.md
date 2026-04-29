@@ -16,7 +16,7 @@ These rules apply to the entire repository.
 
 ## Documentation
 - Update `README.md` or `database/README.md` when behavior or setup steps change.
-- Keep `database/db_core/db_config.php` focused on local-development defaults; mention overrides in docs instead of changing the file per-environment.
+- Keep `database/db_core/db_config.php` local-only and untracked. Update `db_config.example.php` and docs when setup guidance changes instead of introducing tracked secrets.
 
 ## Pull requests
 - Provide a short summary of changes and list the syntax check(s) executed.

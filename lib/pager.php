@@ -23,17 +23,31 @@ function pager_render(string $baseUrl, int $total, int $page, int $size, array $
     $prev = max(1, $page - 1);
     $next = min($pages, $page + 1);
 
-    echo '<div class="pager">';
-    echo '<a class="prev' . ($page === 1 ? ' disabled' : '') . '" href="' . htmlspecialchars($mk($prev)) . '">Prev</a>';
+    echo '<nav class="pager" aria-label="Pagination">';
+    echo '<span class="pager-summary">Page ' . $page . ' of ' . $pages . '</span>';
+    echo '<div class="pager-links">';
+    if ($page === 1) {
+        echo '<span class="pager-link pager-prev is-disabled" aria-disabled="true">Prev</span>';
+    } else {
+        echo '<a class="pager-link pager-prev" href="' . htmlspecialchars($mk($prev)) . '">Prev</a>';
+    }
     // simple window: current ±2
     $start = max(1, $page - 2);
     $end   = min($pages, $page + 2);
-    if ($start > 1) echo '<span class="muted">…</span>';
+    if ($start > 1) echo '<span class="pager-ellipsis" aria-hidden="true">…</span>';
     for ($i = $start; $i <= $end; $i++) {
-        $cls = 'page' . ($i === $page ? ' active' : '');
-        echo '<a class="' . $cls . '" href="' . htmlspecialchars($mk($i)) . '">' . $i . '</a>';
+        if ($i === $page) {
+            echo '<span class="pager-link page active" aria-current="page">' . $i . '</span>';
+            continue;
+        }
+        echo '<a class="pager-link page" href="' . htmlspecialchars($mk($i)) . '">' . $i . '</a>';
     }
-    if ($end < $pages) echo '<span class="muted">…</span>';
-    echo '<a class="next' . ($page === $pages ? ' disabled' : '') . '" href="' . htmlspecialchars($mk($next)) . '">Next</a>';
+    if ($end < $pages) echo '<span class="pager-ellipsis" aria-hidden="true">…</span>';
+    if ($page === $pages) {
+        echo '<span class="pager-link pager-next is-disabled" aria-disabled="true">Next</span>';
+    } else {
+        echo '<a class="pager-link pager-next" href="' . htmlspecialchars($mk($next)) . '">Next</a>';
+    }
     echo '</div>';
+    echo '</nav>';
 }

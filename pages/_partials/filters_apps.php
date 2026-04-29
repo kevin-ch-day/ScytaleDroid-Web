@@ -8,7 +8,7 @@
   <div class="panel-header">
     <div>
       <h2 class="panel-title">Filters</h2>
-      <p class="panel-subtitle">Tune the radar sweep by name, category, or page size.</p>
+      <p class="panel-subtitle">Search by package, label, or category.</p>
     </div>
     <div class="panel-actions">
       <span class="chip-density" data-density-indicator>Density: Standard</span>
@@ -34,22 +34,8 @@
       <button class="btn-ghost" type="button" data-action="clear-filters" <?= $hasActiveFilters ? '' : 'disabled' ?>>Clear</button>
     </form>
 
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <span class="metric-label">Search Tips</span>
-        <span class="metric-value info" aria-hidden="true">%</span>
-        <p class="muted">Use wildcards like <code>%vpn%</code> to find partial package names.</p>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Category Hint</span>
-        <span class="metric-value">AI</span>
-        <p class="muted">Leave blank to sweep all verticals. Enter exact category names for precise filters.</p>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Keyboard</span>
-        <span class="metric-value warn">⌘/Ctrl + K</span>
-        <p class="muted">Focus search instantly with the global shortcut.</p>
-      </div>
-    </div>
+    <p class="inline-hint">
+      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>.
+    </p>
   </div>
 </section>

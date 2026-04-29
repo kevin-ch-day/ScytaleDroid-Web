@@ -61,3 +61,85 @@ function status_chip(?string $status): string
     }
     return chip($normalized !== '' ? $normalized : 'UNKNOWN', $tone);
 }
+
+/** Static/web source state -> badge */
+function source_state_chip(?string $state): string
+{
+    $normalized = strtolower(trim((string)$state));
+    $label = $normalized !== '' ? str_replace('_', ' ', $normalized) : 'unknown';
+    $tone = 'muted';
+
+    if ($normalized === 'static+permission_audit') {
+        $tone = 'info';
+    } elseif ($normalized === 'static') {
+        $tone = 'low';
+    } elseif ($normalized === 'permission_audit') {
+        $tone = 'medium';
+    }
+
+    return chip($label, $tone);
+}
+
+/** Session usability/state -> badge */
+function session_usability_chip(?string $state): string
+{
+    $normalized = strtolower(trim((string)$state));
+    $label = match ($normalized) {
+        'usable_complete' => 'Usable',
+        'in_progress_no_rows' => 'In Progress',
+        'partial_rows' => 'Partial',
+        'failed' => 'Failed',
+        default => $normalized !== '' ? ucfirst(str_replace('_', ' ', $normalized)) : 'Unknown',
+    };
+
+    $tone = match ($normalized) {
+        'usable_complete' => 'info',
+        'in_progress_no_rows' => 'medium',
+        'partial_rows' => 'low',
+        'failed' => 'high',
+        default => 'muted',
+    };
+
+    return chip($label, $tone);
+}
+
+/** Human-friendly finding evidence summary. */
+function finding_evidence_excerpt(?string $evidence, int $maxLen = 220): string
+{
+    $evidence = trim((string)($evidence ?? ''));
+    if ($evidence === '') {
+        return '';
+    }
+
+    $decoded = null;
+    if ($evidence[0] === '{' || $evidence[0] === '[') {
+        $decoded = json_decode($evidence, true);
+    }
+
+    if (is_array($decoded)) {
+        foreach (['detail', 'evidence', 'message', 'summary', 'path', 'value'] as $key) {
+            if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
+                $evidence = (string)$decoded[$key];
+                break;
+            }
+        }
+    }
+
+    $evidence = preg_replace('/\s+/u', ' ', $evidence) ?? $evidence;
+    return mb_strimwidth($evidence, 0, $maxLen, '…');
+}
+
+/** Permission weight badge for internal numeric severity values. */
+function permission_weight_chip($weight): string
+{
+    $n = (int)$weight;
+    $tone = 'info';
+    if ($n >= 150) {
+        $tone = 'high';
+    } elseif ($n >= 80) {
+        $tone = 'medium';
+    } elseif ($n >= 30) {
+        $tone = 'low';
+    }
+    return chip((string)$n, $tone);
+}

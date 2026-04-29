@@ -8,7 +8,11 @@ $packageName = $context['package_name'];
 $app = $context['app'];
 $sessions = $context['sessions'];
 $activeSession = $context['active_session'];
+$activeSessionUsable = $context['active_session_usable'];
 $activeSessionRow = $context['active_session_row'];
+$preferredSession = $context['preferred_session'];
+$preferredSessionRow = $context['preferred_session_row'];
+$newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
 
 $rows = [];
@@ -34,15 +38,14 @@ require_once __DIR__ . '/../lib/header.php';
 
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
-<?php elseif ($packageName === null): ?>
-  <section class="section">
-    <div class="panel">
-      <div class="panel-body">
-        <p class="muted">Choose an app to review its persisted permission matrix.</p>
-        <p><a class="btn-ghost" href="<?= e(url('pages/index.php')) ?>">Open Apps Directory</a></p>
-      </div>
-    </div>
-  </section>
+<?php elseif ($packageName === null || !is_array($app)): ?>
+  <?php
+  $title = 'App Permissions';
+  $message = $packageName === null
+    ? 'Choose an app to review its persisted permission matrix.'
+    : 'This package is not available in the current app directory.';
+  require __DIR__ . '/_partials/app_lookup_empty.php';
+  ?>
 <?php else: ?>
   <?php
   $activeTab = 'permissions';
@@ -81,7 +84,11 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <?php if (empty($rows)): ?>
-          <p class="muted">No permission-matrix rows were found for this package/session.</p>
+          <?php if (!$activeSessionUsable && $preferredSession): ?>
+            <p class="muted">No permission rows were found because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_permissions.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>.</p>
+          <?php else: ?>
+            <p class="muted">No permission-matrix rows were found for this package/session.</p>
+          <?php endif; ?>
         <?php else: ?>
           <div class="table-responsive">
             <table class="table table-striped table-hover">
@@ -90,7 +97,7 @@ require_once __DIR__ . '/../lib/header.php';
                   <th>Permission</th>
                   <th>Protection</th>
                   <th>Source</th>
-                  <th>Severity</th>
+                  <th>Weight</th>
                   <th>Flags</th>
                 </tr>
               </thead>
@@ -108,8 +115,18 @@ require_once __DIR__ . '/../lib/header.php';
                     <td class="cell-clip"><?= e((string)($row['permission_name'] ?? '')) ?></td>
                     <td><?= e((string)($row['protection'] ?? '—')) ?></td>
                     <td><?= e((string)($row['source'] ?? '—')) ?></td>
-                    <td><?= e((string)($row['severity'] ?? '0')) ?></td>
-                    <td><?= e($flags ? implode(', ', $flags) : '—') ?></td>
+                    <td><?= permission_weight_chip($row['severity'] ?? 0) ?></td>
+                    <td>
+                      <?php if ($flags): ?>
+                        <div class="chip-row">
+                          <?php foreach ($flags as $flag): ?>
+                            <?= chip($flag, $flag === 'dangerous' ? 'high' : ($flag === 'signature' || $flag === 'privileged' ? 'medium' : 'low')) ?>
+                          <?php endforeach; ?>
+                        </div>
+                      <?php else: ?>
+                        —
+                      <?php endif; ?>
+                    </td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>

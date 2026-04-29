@@ -234,6 +234,10 @@ code {
   min-width: 0;
 }
 
+.topbar-home {
+  text-decoration: none;
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -361,7 +365,7 @@ code {
 
 .session-link {
   display: block;
-  padding: .85rem 1rem;
+  padding: .65rem .85rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--panel-border);
   background: var(--surface-2);
@@ -382,13 +386,14 @@ code {
 .session-link-main {
   display: block;
   font-weight: 600;
+  font-size: .95rem;
 }
 
 .session-link-meta {
   display: block;
   margin-top: .2rem;
   color: var(--muted);
-  font-size: .92rem;
+  font-size: .84rem;
 }
 
 .pre-wrap {

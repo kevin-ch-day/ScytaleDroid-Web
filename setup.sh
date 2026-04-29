@@ -101,8 +101,10 @@ Next steps:
 3) Ensure your app config points to the right subdir:
    - config/config.php:   \$__BASE_URL = '/ScytaleDroid-Web';
 
-4) Database config (hardcoded by design here):
-   - database/db_core/db_config.php  (host, port, db, user, pass)
+4) Database config:
+   - Prefer SCYTALEDROID_DB_* environment variables, or
+   - copy database/db_core/db_config.example.php to database/db_core/db_config.php
+   - local db_config.php is ignored by Git and must not be committed
 
 5) Test the app:
    - http://localhost/ScytaleDroid-Web/pages/index.php

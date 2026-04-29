@@ -25,6 +25,7 @@ A read-only LAMP UI for exploring ScytaleDroid analysis results stored in MariaD
 2. **Configuration**
    - Prefer environment variables for database credentials.
    - For local development, copy `database/db_core/db_config.example.php` to `database/db_core/db_config.php`; the local file is intentionally ignored by Git.
+   - Never commit `database/db_core/db_config.php`. It is for local-only overrides.
    - Adjust `config/config.php` for deployment-specific settings such as `BASE_URL`.
 3. **Database**
    - The UI reads from ScytaleDroid static exposure and runtime deviation tables.

@@ -33,6 +33,34 @@ const _RUNTIME_RUN_FILTERS = [
     'tier' => ['LOWER(tier) = LOWER(:tier)'],
 ];
 
+const _FINDINGS_EXPLORER_FILTERS = [
+    'severity' => ['LOWER(COALESCE(f.severity, \'\')) = LOWER(:severity)'],
+    'category' => ['COALESCE(f.category, \'Uncategorized\') = :category'],
+    'masvs_area' => ['COALESCE(f.masvs_area, \'Unmapped\') = :masvs_area'],
+    'q' => [
+        '('
+        . 'CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(latest.app_label USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(f.title USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_title AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
+        . ')',
+        'like',
+    ],
+];
+
+const _COMPONENT_EXPOSURE_FILTERS = [
+    'exported' => ['fp.exported = :exported'],
+    'guard' => ['LOWER(COALESCE(fp.effective_guard, \'\')) = LOWER(:guard)'],
+    'q' => [
+        '('
+        . 'CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(dir.app_label USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(fp.provider_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_provider AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(fp.authority USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_authority AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
+        . ')',
+        'like',
+    ],
+];
+
 /**
  * Internal: resolve transform names used in filter maps.
  */
@@ -90,6 +118,46 @@ function _runtime_runs_where(array $filters): array
     return sql_filters($filters, $map);
 }
 
+/**
+ * Build WHERE/params for latest-findings explorer filters.
+ *
+ * @param array<string,mixed> $filters
+ * @return array{0:string,1:array<string,mixed>}
+ */
+function _findings_explorer_where(array $filters): array
+{
+    $map = [];
+    foreach (_FINDINGS_EXPLORER_FILTERS as $k => $tpl) {
+        $sql = $tpl[0] ?? '';
+        $xf = $tpl[1] ?? null;
+        if (is_string($xf)) {
+            $xf = _xf($xf);
+        }
+        $map[$k] = [$sql, $xf];
+    }
+    return sql_filters($filters, $map);
+}
+
+/**
+ * Build WHERE/params for component exposure filters.
+ *
+ * @param array<string,mixed> $filters
+ * @return array{0:string,1:array<string,mixed>}
+ */
+function _component_exposure_where(array $filters): array
+{
+    $map = [];
+    foreach (_COMPONENT_EXPOSURE_FILTERS as $k => $tpl) {
+        $sql = $tpl[0] ?? '';
+        $xf = $tpl[1] ?? null;
+        if (is_string($xf)) {
+            $xf = _xf($xf);
+        }
+        $map[$k] = [$sql, $xf];
+    }
+    return sql_filters($filters, $map);
+}
+
 function _positive_limit(int $limit, int $max = 250): int
 {
     return max(1, min($limit, $max));
@@ -116,6 +184,36 @@ function apps_directory_paged(?string $category, ?string $q, int $page, int $siz
         $page,
         $size
     );
+}
+
+/**
+ * Fleet dashboard overview metrics.
+ *
+ * @return array<string,mixed>
+ */
+function fleet_dashboard_overview(): array
+{
+    return db_one(SQL_DASHBOARD_OVERVIEW) ?? [];
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function fleet_category_summary(int $limit = 8): array
+{
+    $limit = _positive_limit($limit, 30);
+    $sql = SQL_DASHBOARD_CATEGORY_SUMMARY . " LIMIT $limit";
+    return db_all($sql);
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function fleet_recurring_findings(int $limit = 10): array
+{
+    $limit = _positive_limit($limit, 50);
+    $sql = SQL_DASHBOARD_RECURRING_FINDINGS . " LIMIT $limit";
+    return db_all($sql);
 }
 
 /**
@@ -282,6 +380,105 @@ function apps_directory_probe(int $limit = 10): array
 }
 
 /**
+ * Latest findings explorer across current web-facing static surfaces.
+ *
+ * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
+ */
+function findings_explorer_paged(?string $severity, ?string $category, ?string $masvsArea, ?string $q, int $page, int $size): array
+{
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'q' => $q,
+    ]);
+
+    return db_paged(
+        SQL_FINDINGS_EXPLORER_BASE,
+        SQL_FINDINGS_EXPLORER_COUNT,
+        $where,
+        SQL_FINDINGS_EXPLORER_ORDER,
+        $params,
+        $page,
+        $size
+    );
+}
+
+/**
+ * @return array<int,string>
+ */
+function findings_categories(): array
+{
+    return array_values(array_map(
+        static fn(array $row): string => (string)($row['category'] ?? ''),
+        db_all(SQL_FINDINGS_CATEGORIES)
+    ));
+}
+
+/**
+ * @return array<int,string>
+ */
+function findings_masvs_areas(): array
+{
+    return array_values(array_map(
+        static fn(array $row): string => (string)($row['masvs_area'] ?? ''),
+        db_all(SQL_FINDINGS_MASVS_AREAS)
+    ));
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function static_session_health(int $limit = 20): array
+{
+    $limit = _positive_limit($limit, 50);
+    $sql = SQL_STATIC_SESSION_HEALTH . " LIMIT $limit";
+    return db_all($sql);
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function static_session_quality(): array
+{
+    return db_one(SQL_STATIC_SESSION_QUALITY) ?? [];
+}
+
+/**
+ * Fleet component exposure explorer.
+ *
+ * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
+ */
+function component_exposure_paged(?string $exported, ?string $guard, ?string $q, int $page, int $size): array
+{
+    [$whereExtra, $params] = _component_exposure_where([
+        'exported' => $exported,
+        'guard' => $guard,
+        'q' => $q,
+    ]);
+
+    $where = $whereExtra === '' ? '' : (' AND ' . preg_replace('/^WHERE\s+/i', '', $whereExtra));
+
+    return db_paged(
+        SQL_COMPONENT_EXPOSURE_BASE,
+        SQL_COMPONENT_EXPOSURE_COUNT,
+        $where,
+        SQL_COMPONENT_EXPOSURE_ORDER,
+        $params,
+        $page,
+        $size
+    );
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function component_exposure_overview(): array
+{
+    return db_one(SQL_COMPONENT_EXPOSURE_OVERVIEW) ?? [];
+}
+
+/**
  * Return app-level overview data merged from audit/static tables.
  *
  * @return array<string,mixed>|null
@@ -385,6 +582,38 @@ function app_permissions(string $packageName, string $sessionStamp, int $limit =
         [
             'pkg_permissions' => $packageName,
             'session_permissions' => $sessionStamp,
+        ]
+    );
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function app_fileproviders(string $packageName, string $sessionStamp, int $limit = 100): array
+{
+    $limit = _positive_limit($limit, 250);
+    $sql = SQL_APP_FILEPROVIDERS . " LIMIT $limit";
+    return db_all(
+        $sql,
+        [
+            'pkg_fileproviders' => $packageName,
+            'session_fileproviders' => $sessionStamp,
+        ]
+    );
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function app_provider_acl(string $packageName, string $sessionStamp, int $limit = 150): array
+{
+    $limit = _positive_limit($limit, 300);
+    $sql = SQL_APP_PROVIDER_ACL . " LIMIT $limit";
+    return db_all(
+        $sql,
+        [
+            'pkg_provider_acl' => $packageName,
+            'session_provider_acl' => $sessionStamp,
         ]
     );
 }

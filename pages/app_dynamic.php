@@ -9,6 +9,11 @@ $packageName = $context['package_name'];
 $app = $context['app'];
 $sessions = $context['sessions'];
 $activeSession = $context['active_session'];
+$activeSessionUsable = $context['active_session_usable'];
+$activeSessionRow = $context['active_session_row'];
+$preferredSession = $context['preferred_session'];
+$preferredSessionRow = $context['preferred_session_row'];
+$newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
 
 $summary = [];
@@ -45,8 +50,14 @@ require_once __DIR__ . '/../lib/header.php';
 
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
-<?php elseif ($packageName === null): ?>
-  <section class="section"><div class="panel"><div class="panel-body"><p class="muted">Choose an app to inspect runtime deviation runs.</p></div></div></section>
+<?php elseif ($packageName === null || !is_array($app)): ?>
+  <?php
+  $title = 'App Dynamic';
+  $message = $packageName === null
+    ? 'Choose an app to inspect runtime deviation runs.'
+    : 'This package is not available in the current app directory.';
+  require __DIR__ . '/_partials/app_lookup_empty.php';
+  ?>
 <?php else: ?>
   <?php
   $activeTab = 'dynamic';

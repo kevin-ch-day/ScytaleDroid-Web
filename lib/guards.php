@@ -70,3 +70,17 @@ function guard_dynamic_run_id(?string $runId): ?string
     if (!preg_match('/^[A-Za-z0-9._:-]{1,128}$/', $runId)) return null;
     return $runId;
 }
+
+/** Enum-like choice guard with case-insensitive matching. */
+function guard_choice(?string $value, array $allowed): ?string
+{
+    $value = guard_str($value);
+    if ($value === null) return null;
+    foreach ($allowed as $item) {
+        $candidate = (string)$item;
+        if (strcasecmp($value, $candidate) === 0) {
+            return $candidate;
+        }
+    }
+    return null;
+}

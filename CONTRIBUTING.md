@@ -5,7 +5,7 @@ Thanks for your interest in improving ScytaleDroid-Web! This project exposes Scy
 ## Getting Started
 
 1. Clone the repository and install dependencies (Apache/Nginx with PHP 8.1+, MariaDB/MySQL client).
-2. Review `database/db_core/db_config.php` and adjust the credentials for your environment. The committed defaults target a local developer instance (localhost, `scytale` user). Avoid committing production secrets to shared branches.
+2. Copy `database/db_core/db_config.example.php` to `database/db_core/db_config.php` for local-only overrides, or set `SCYTALEDROID_DB_*` environment variables. The local config file is ignored by Git and must not be committed.
 3. Ensure PHP has the `pdo_mysql` extension installed.
 4. Configure a virtual host that points to the project root. The UI entry point is `pages/index.php`.
 

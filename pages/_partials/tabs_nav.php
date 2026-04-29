@@ -3,6 +3,7 @@
 // Expected:
 // $packageName (string), $activeSession (?string), $activeTab (string)
 $tabBase = [
+  'report' => 'app_report.php',
   'overview' => 'view_app.php',
   'findings' => 'app_findings.php',
   'permissions' => 'app_permissions.php',
@@ -19,7 +20,7 @@ $tabBase = [
       if ($activeSession && $tab !== 'dynamic') {
           $href .= '&session=' . urlencode($activeSession);
       }
-      $label = ucfirst($tab);
+      $label = $tab === 'report' ? 'Report' : ucfirst($tab);
       ?>
       <a
         class="tab-link<?= $activeTab === $tab ? ' is-active' : '' ?>"

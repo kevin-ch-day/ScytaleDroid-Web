@@ -8,7 +8,11 @@ $packageName = $context['package_name'];
 $app = $context['app'];
 $sessions = $context['sessions'];
 $activeSession = $context['active_session'];
+$activeSessionUsable = $context['active_session_usable'];
 $activeSessionRow = $context['active_session_row'];
+$preferredSession = $context['preferred_session'];
+$preferredSessionRow = $context['preferred_session_row'];
+$newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
 
 $summary = null;
@@ -29,8 +33,14 @@ require_once __DIR__ . '/../lib/header.php';
 
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger"><?= e($errorMsg) ?></div>
-<?php elseif ($packageName === null): ?>
-  <section class="section"><div class="panel"><div class="panel-body"><p class="muted">Choose an app to inspect static findings.</p></div></div></section>
+<?php elseif ($packageName === null || !is_array($app)): ?>
+  <?php
+  $title = 'App Findings';
+  $message = $packageName === null
+    ? 'Choose an app to inspect static findings.'
+    : 'This package is not available in the current app directory.';
+  require __DIR__ . '/_partials/app_lookup_empty.php';
+  ?>
 <?php else: ?>
   <?php
   $activeTab = 'findings';
@@ -50,7 +60,11 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <?php if ($summary === null): ?>
-          <p class="muted">No findings summary is available for this package/session.</p>
+          <?php if (!$activeSessionUsable && $preferredSession): ?>
+            <p class="muted">No findings summary is available because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_findings.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>.</p>
+          <?php else: ?>
+            <p class="muted">No findings summary is available for this package/session.</p>
+          <?php endif; ?>
         <?php else: ?>
           <div class="metrics-grid">
             <div class="metric-card"><span class="metric-label">High</span><span class="metric-value bad"><?= e((string)($summary['high'] ?? '0')) ?></span></div>
@@ -89,7 +103,7 @@ require_once __DIR__ . '/../lib/header.php';
                   </div>
                 </div>
                 <?php if (!empty($row['evidence'])): ?>
-                  <p class="pre-wrap muted"><?= e((string)$row['evidence']) ?></p>
+                  <p class="pre-wrap muted"><?= e(finding_evidence_excerpt((string)$row['evidence'], 320)) ?></p>
                 <?php endif; ?>
                 <?php if (!empty($row['fix'])): ?>
                   <p><strong>Fix:</strong> <?= e((string)$row['fix']) ?></p>

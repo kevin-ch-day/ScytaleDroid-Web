@@ -4,16 +4,18 @@
 // $app (array<string,mixed>|null), $packageName (string), $activeSession (?string)
 // Optional:
 // $activeSessionRow (?array<string,mixed>)
+$activeSessionUsable = $activeSessionUsable ?? false;
+$preferredSessionRow = $preferredSessionRow ?? null;
 $activeSessionRow = $activeSessionRow ?? null;
 $appLabel = $app['app_label'] ?? $packageName;
 $category = $app['category'] ?? 'Uncategorized';
 $profile = $app['profile_label'] ?? 'Unclassified';
-$grade = $activeSessionRow['grade'] ?? ($app['grade'] ?? null);
-$score = $activeSessionRow['score_capped'] ?? ($app['score_capped'] ?? null);
-$auditStamp = $activeSessionRow['audit_created_at'] ?? ($app['last_scanned'] ?? null);
+$grade = $activeSessionUsable ? ($activeSessionRow['grade'] ?? ($app['grade'] ?? null)) : ($app['grade'] ?? null);
+$score = $activeSessionUsable ? ($activeSessionRow['score_capped'] ?? ($app['score_capped'] ?? null)) : ($app['score_capped'] ?? null);
+$auditStamp = $activeSessionUsable ? ($activeSessionRow['audit_created_at'] ?? ($app['last_scanned'] ?? null)) : ($app['last_scanned'] ?? null);
 $runStatus = $activeSessionRow['run_status'] ?? null;
 $sessionCreated = $activeSessionRow['created_at'] ?? null;
-$auditLabel = $activeSessionRow ? 'Selected session audit' : 'Latest permission audit';
+$auditLabel = $activeSessionUsable ? 'Selected session audit' : 'Latest completed audit';
 ?>
 
 <section class="section detail-hero">
@@ -30,10 +32,13 @@ $auditLabel = $activeSessionRow ? 'Selected session audit' : 'Latest permission 
       <div class="panel-actions chip-row">
         <?= grade_badge(is_string($grade) ? $grade : null) ?>
         <?php if ($activeSession): ?>
-          <?= chip('Session ' . $activeSession, 'info') ?>
+          <?= chip('Data source ' . $activeSession, 'info') ?>
         <?php endif; ?>
         <?php if ($runStatus): ?>
           <?= status_chip((string)$runStatus) ?>
+        <?php endif; ?>
+        <?php if ($activeSessionRow): ?>
+          <?= session_usability_chip((string)($activeSessionRow['session_usability'] ?? 'unknown')) ?>
         <?php endif; ?>
         <?php if ($score !== null && $score !== ''): ?>
           <?= chip('Score ' . $score, 'medium') ?>

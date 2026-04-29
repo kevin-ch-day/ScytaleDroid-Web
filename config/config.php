@@ -5,6 +5,7 @@
 if (!defined('APP_NAME')) define('APP_NAME', 'ScytaleDroid');
 // Optional: app version for cache-busting (edit when you ship UI changes)
 if (!defined('APP_VERSION')) define('APP_VERSION', '0.2.0');
+if (!defined('TRUST_PROXY_HEADERS')) define('TRUST_PROXY_HEADERS', getenv('SD_TRUST_PROXY_HEADERS') === '1');
 
 // ── Base URL (subdirectory) ───────────────────────────────────────────────────
 // Options (precedence):
@@ -42,11 +43,12 @@ if (!defined('BASE_URL')) {
 
 // ── Origin (scheme + host) for absolute URLs ──────────────────────────────────
 if (!defined('APP_ORIGIN')) {
-    // Respect proxies if present
-    $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? (
-        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http'
-    );
-    $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    if (TRUST_PROXY_HEADERS) {
+        $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $proto;
+        $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $host;
+    }
     // If HTTP_HOST is missing a port but SERVER_PORT is non-standard, append
     if (strpos($host, ':') === false && isset($_SERVER['SERVER_PORT'])) {
         $port = (string)$_SERVER['SERVER_PORT'];
@@ -63,6 +65,8 @@ if (!defined('PAGES_URL'))  define('PAGES_URL',  BASE_URL . '/pages');
 // ── Paging defaults ───────────────────────────────────────────────────────────
 if (!defined('PAGE_SIZES'))        define('PAGE_SIZES', [25, 50, 100]);
 if (!defined('DEFAULT_PAGE_SIZE')) define('DEFAULT_PAGE_SIZE', 25);
+if (!defined('DYNAMIC_STATUS_OPTIONS')) define('DYNAMIC_STATUS_OPTIONS', ['success', 'degraded', 'failed']);
+if (!defined('DYNAMIC_TIER_OPTIONS')) define('DYNAMIC_TIER_OPTIONS', ['dataset', 'exploration', 'unknown']);
 
 // ── Timezone (keeps dates consistent if php.ini lacks one) ────────────────────
 if (!ini_get('date.timezone')) {

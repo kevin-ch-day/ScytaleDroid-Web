@@ -7,8 +7,10 @@ require_once __DIR__ . '/../lib/pager.php';
 require_once __DIR__ . '/../database/db_lib/db_func.php';
 
 $q = guard_search($_GET['q'] ?? null);
-$status = guard_category($_GET['status'] ?? null);
-$tier = guard_category($_GET['tier'] ?? null);
+$statusOptions = defined('DYNAMIC_STATUS_OPTIONS') ? DYNAMIC_STATUS_OPTIONS : ['success', 'degraded', 'failed'];
+$tierOptions = defined('DYNAMIC_TIER_OPTIONS') ? DYNAMIC_TIER_OPTIONS : ['dataset', 'exploration', 'unknown'];
+$status = guard_choice($_GET['status'] ?? null, $statusOptions);
+$tier = guard_choice($_GET['tier'] ?? null, $tierOptions);
 [$size, $offset, $page] = pager_from_query($_GET);
 
 $overview = [];
@@ -91,11 +93,21 @@ require_once __DIR__ . '/../lib/header.php';
         </label>
         <label>
           <span class="metric-label">Status</span>
-          <input type="text" name="status" value="<?= e((string)$status) ?>" placeholder="success, degraded, failed">
+          <select name="status">
+            <option value="">Any status</option>
+            <?php foreach ($statusOptions as $opt): ?>
+              <option value="<?= e((string)$opt) ?>" <?= (string)$status === (string)$opt ? 'selected' : '' ?>><?= e(ucfirst((string)$opt)) ?></option>
+            <?php endforeach; ?>
+          </select>
         </label>
         <label>
           <span class="metric-label">Tier</span>
-          <input type="text" name="tier" value="<?= e((string)$tier) ?>" placeholder="dataset, exploration">
+          <select name="tier">
+            <option value="">Any tier</option>
+            <?php foreach ($tierOptions as $opt): ?>
+              <option value="<?= e((string)$opt) ?>" <?= (string)$tier === (string)$opt ? 'selected' : '' ?>><?= e(ucfirst((string)$opt)) ?></option>
+            <?php endforeach; ?>
+          </select>
         </label>
         <label>
           <span class="metric-label">Page Size</span>
