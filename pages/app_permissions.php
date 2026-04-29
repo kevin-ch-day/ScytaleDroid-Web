@@ -16,15 +16,24 @@ $newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
 
 $rows = [];
+$summary = null;
 $counts = ['dangerous' => 0, 'signature' => 0, 'privileged' => 0, 'custom' => 0];
 if ($packageName && $activeSession && !$errorMsg) {
     try {
+        $summary = app_permission_summary($packageName, $activeSession);
         $rows = app_permissions($packageName, $activeSession, 300);
-        foreach ($rows as $row) {
-            $counts['dangerous'] += (int)($row['is_runtime_dangerous'] ?? 0);
-            $counts['signature'] += (int)($row['is_signature'] ?? 0);
-            $counts['privileged'] += (int)($row['is_privileged'] ?? 0);
-            $counts['custom'] += (int)($row['is_custom'] ?? 0);
+        if (is_array($summary)) {
+            $counts['dangerous'] = (int)($summary['dangerous_count'] ?? 0);
+            $counts['signature'] = (int)($summary['signature_count'] ?? 0);
+            $counts['privileged'] = (int)($summary['privileged_count'] ?? 0);
+            $counts['custom'] = (int)($summary['custom_count'] ?? 0);
+        } else {
+            foreach ($rows as $row) {
+                $counts['dangerous'] += (int)($row['is_runtime_dangerous'] ?? 0);
+                $counts['signature'] += (int)($row['is_signature'] ?? 0);
+                $counts['privileged'] += (int)($row['is_privileged'] ?? 0);
+                $counts['custom'] += (int)($row['is_custom'] ?? 0);
+            }
         }
     } catch (Throwable $e) {
         $errorMsg = 'DB error: ' . $e->getMessage();

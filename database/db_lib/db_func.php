@@ -38,6 +38,7 @@ const _FINDINGS_EXPLORER_FILTERS = [
     'category' => ['COALESCE(latest.category, \'Uncategorized\') = :category'],
     'masvs_area' => ['COALESCE(latest.masvs_area, \'Unmapped\') = :masvs_area'],
     'detector' => ['COALESCE(latest.detector, \'unknown\') = :detector'],
+    'session_stamp' => ['COALESCE(latest.session_stamp, \'\') = :session_stamp'],
     'q' => [
         '('
         . 'CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_general_ci LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
@@ -433,6 +434,8 @@ function findings_explorer_paged_v2(
     ?string $category,
     ?string $masvsArea,
     ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
     ?string $q,
     bool $includeSynthetic,
     int $page,
@@ -443,12 +446,17 @@ function findings_explorer_paged_v2(
         'category' => $category,
         'masvs_area' => $masvsArea,
         'detector' => $detector,
+        'session_stamp' => $sessionStamp,
         'q' => $q,
     ]);
 
     $clauses = [];
     if ($where !== '') {
         $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
     }
     if (!$includeSynthetic) {
         $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
@@ -466,6 +474,19 @@ function findings_explorer_paged_v2(
         60,
         'findings_explorer_v2_' . sha1(json_encode([$finalWhere, $params, $includeSynthetic], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $finalWhere)
     );
+}
+
+/**
+ * @return string
+ */
+function _findings_scope_clause(?string $appScope, string $alias = 'latest'): string
+{
+    return match ((string)$appScope) {
+        'user_apps' => "COALESCE({$alias}.profile_key, '') <> 'SYSTEM_CORE'",
+        'system_oem_apps' => "COALESCE({$alias}.profile_key, '') = 'SYSTEM_CORE'",
+        'google_apps' => "COALESCE({$alias}.publisher_key, '') = 'GOOGLE'",
+        default => '',
+    };
 }
 
 /**
@@ -490,6 +511,19 @@ function findings_masvs_areas(): array
         return array_values(array_map(
             static fn(array $row): string => (string)($row['masvs_area'] ?? ''),
             db_all(SQL_FINDINGS_MASVS_AREAS)
+        ));
+    });
+}
+
+/**
+ * @return array<int,string>
+ */
+function findings_sessions(): array
+{
+    return web_cache_remember('findings_sessions_v1', 300, static function (): array {
+        return array_values(array_map(
+            static fn(array $row): string => (string)($row['session_stamp'] ?? ''),
+            db_all("SELECT DISTINCT session_stamp FROM v_web_app_findings WHERE COALESCE(session_stamp, '') <> '' ORDER BY session_stamp DESC")
         ));
     });
 }
@@ -576,6 +610,8 @@ function findings_explorer_grouped(
     ?string $category,
     ?string $masvsArea,
     ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
     ?string $q,
     bool $includeSynthetic,
     int $page,
@@ -586,12 +622,17 @@ function findings_explorer_grouped(
         'category' => $category,
         'masvs_area' => $masvsArea,
         'detector' => $detector,
+        'session_stamp' => $sessionStamp,
         'q' => $q,
     ]);
 
     $clauses = [];
     if ($where !== '') {
         $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
     }
     if (!$includeSynthetic) {
         $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
@@ -636,6 +677,223 @@ function findings_explorer_grouped(
         60,
         'findings_grouped_' . sha1(json_encode([$groupBy, $inner, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $groupBy)
     );
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function findings_explorer_source_summary(
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
+    ?string $q,
+    bool $includeSynthetic
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'session_stamp' => $sessionStamp,
+        'q' => $q,
+    ]);
+
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
+    }
+    $finalWhere = $clauses ? ('WHERE ' . implode(' AND ', $clauses)) : '';
+    $subWhere = $finalWhere === '' ? '' : str_replace('latest.', 'latest2.', $finalWhere);
+    $sql = sprintf(SQL_FINDINGS_EXPLORER_SOURCE_SUMMARY, $subWhere);
+    return db_one($sql, $params) ?? [];
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function findings_group_detail_summary(
+    string $groupBy,
+    string $groupValue,
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
+    bool $includeSynthetic
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'session_stamp' => $sessionStamp,
+        'q' => null,
+    ]);
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
+    }
+    $field = match ($groupBy) {
+        'detector' => 'latest.detector',
+        'masvs_area' => 'latest.masvs_area',
+        'app' => 'latest.app_label',
+        default => 'latest.title',
+    };
+    $clauses[] = "COALESCE({$field}, '') = :group_value";
+    $params['group_value'] = $groupValue;
+    $finalWhere = 'WHERE ' . implode(' AND ', $clauses);
+    $sql = "
+        SELECT
+          COUNT(*) AS finding_rows,
+          COUNT(DISTINCT latest.package_name) AS affected_apps,
+          COUNT(DISTINCT latest.session_stamp) AS session_count,
+          SUM(CASE WHEN latest.severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
+          SUM(CASE WHEN latest.severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+          SUM(CASE WHEN latest.severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+          SUM(CASE WHEN latest.severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+          SUM(CASE WHEN latest.severity = 'info' THEN 1 ELSE 0 END) AS info_rows,
+          MIN(latest.category) AS category,
+          MIN(latest.masvs_area) AS masvs_area,
+          MIN(latest.detector) AS detector,
+          SUM(CASE WHEN COALESCE(latest.profile_key, '') = 'SYSTEM_CORE' THEN 1 ELSE 0 END) AS system_rows,
+          SUM(CASE WHEN COALESCE(latest.publisher_key, '') = 'GOOGLE' THEN 1 ELSE 0 END) AS google_rows
+        FROM v_web_app_findings latest
+        {$finalWhere}
+    ";
+    return db_one($sql, $params) ?? [];
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function findings_group_detail_apps(
+    string $groupBy,
+    string $groupValue,
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
+    bool $includeSynthetic,
+    int $limit = 25
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'session_stamp' => $sessionStamp,
+        'q' => null,
+    ]);
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
+    }
+    $field = match ($groupBy) {
+        'detector' => 'latest.detector',
+        'masvs_area' => 'latest.masvs_area',
+        'app' => 'latest.app_label',
+        default => 'latest.title',
+    };
+    $clauses[] = "COALESCE({$field}, '') = :group_value";
+    $params['group_value'] = $groupValue;
+    $limit = _positive_limit($limit, 100);
+    $sql = "
+        SELECT
+          latest.package_name,
+          latest.app_label,
+          latest.profile_label,
+          latest.publisher_key,
+          latest.session_stamp,
+          COUNT(*) AS finding_rows,
+          SUM(CASE WHEN latest.severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
+          SUM(CASE WHEN latest.severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+          SUM(CASE WHEN latest.severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+          SUM(CASE WHEN latest.severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+          SUM(CASE WHEN latest.severity = 'info' THEN 1 ELSE 0 END) AS info_rows
+        FROM v_web_app_findings latest
+        WHERE " . implode(' AND ', $clauses) . "
+        GROUP BY latest.package_name, latest.app_label, latest.profile_label, latest.publisher_key, latest.session_stamp
+        ORDER BY high_rows DESC, medium_rows DESC, finding_rows DESC, latest.app_label ASC
+        LIMIT {$limit}
+    ";
+    return db_all($sql, $params);
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function findings_group_detail_examples(
+    string $groupBy,
+    string $groupValue,
+    ?string $severity,
+    ?string $category,
+    ?string $masvsArea,
+    ?string $detector,
+    ?string $sessionStamp,
+    ?string $appScope,
+    bool $includeSynthetic,
+    int $limit = 12
+): array {
+    [$where, $params] = _findings_explorer_where([
+        'severity' => $severity,
+        'category' => $category,
+        'masvs_area' => $masvsArea,
+        'detector' => $detector,
+        'session_stamp' => $sessionStamp,
+        'q' => null,
+    ]);
+    $clauses = [];
+    if ($where !== '') {
+        $clauses[] = preg_replace('/^WHERE\s+/i', '', $where);
+    }
+    $scopeClause = _findings_scope_clause($appScope, 'latest');
+    if ($scopeClause !== '') {
+        $clauses[] = $scopeClause;
+    }
+    if (!$includeSynthetic) {
+        $clauses[] = "NOT (COALESCE(latest.detector, '') = 'correlation_engine' OR COALESCE(latest.title, '') LIKE 'Composite risk — %')";
+    }
+    $field = match ($groupBy) {
+        'detector' => 'latest.detector',
+        'masvs_area' => 'latest.masvs_area',
+        'app' => 'latest.app_label',
+        default => 'latest.title',
+    };
+    $clauses[] = "COALESCE({$field}, '') = :group_value";
+    $params['group_value'] = $groupValue;
+    $limit = _positive_limit($limit, 50);
+    $sql = SQL_FINDINGS_EXPLORER_BASE
+        . ' WHERE ' . implode(' AND ', $clauses)
+        . ' ' . SQL_FINDINGS_EXPLORER_ORDER
+        . " LIMIT {$limit}";
+    return db_all($sql, $params);
 }
 
 /**
@@ -801,6 +1059,20 @@ function app_permissions(string $packageName, string $sessionStamp, int $limit =
 }
 
 /**
+ * @return array<string,mixed>|null
+ */
+function app_permission_summary(string $packageName, string $sessionStamp): ?array
+{
+    return db_one(
+        SQL_APP_PERMISSION_SUMMARY,
+        [
+            'pkg_permission_summary' => $packageName,
+            'session_permission_summary' => $sessionStamp,
+        ]
+    );
+}
+
+/**
  * @return array<int,array<string,mixed>>
  */
 function app_fileproviders(string $packageName, string $sessionStamp, int $limit = 100): array
@@ -828,6 +1100,34 @@ function app_provider_acl(string $packageName, string $sessionStamp, int $limit 
         [
             'pkg_provider_acl' => $packageName,
             'session_provider_acl' => $sessionStamp,
+        ]
+    );
+}
+
+/**
+ * @return array<string,mixed>|null
+ */
+function app_component_summary(string $packageName, string $sessionStamp): ?array
+{
+    return db_one(
+        SQL_APP_COMPONENT_SUMMARY,
+        [
+            'pkg_component_summary' => $packageName,
+            'session_component_summary' => $sessionStamp,
+        ]
+    );
+}
+
+/**
+ * @return array<string,mixed>|null
+ */
+function app_report_summary(string $packageName, string $sessionStamp): ?array
+{
+    return db_one(
+        SQL_APP_REPORT_SUMMARY,
+        [
+            'pkg_report_summary' => $packageName,
+            'session_report_summary' => $sessionStamp,
         ]
     );
 }

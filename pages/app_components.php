@@ -16,6 +16,7 @@ $errorMsg = $context['error'];
 
 $fileProviders = [];
 $providerAcl = [];
+$summary = null;
 $componentSummary = [
     'providers' => 0,
     'exported_providers' => 0,
@@ -25,18 +26,26 @@ $componentSummary = [
 
 if ($packageName && $activeSession && !$errorMsg) {
     try {
+        $summary = app_component_summary($packageName, $activeSession);
         $fileProviders = app_fileproviders($packageName, $activeSession, 150);
         $providerAcl = app_provider_acl($packageName, $activeSession, 200);
-        $componentSummary['providers'] = count($fileProviders);
-        $componentSummary['acl_rows'] = count($providerAcl);
-        foreach ($fileProviders as $row) {
-            $exported = (int)($row['exported'] ?? 0) === 1;
-            $guard = strtolower((string)($row['effective_guard'] ?? ''));
-            if ($exported) {
-                $componentSummary['exported_providers']++;
-            }
-            if ($exported && ($guard === '' || in_array($guard, ['none', 'weak'], true))) {
-                $componentSummary['weak_provider_guards']++;
+        if (is_array($summary)) {
+            $componentSummary['providers'] = (int)($summary['providers'] ?? 0);
+            $componentSummary['exported_providers'] = (int)($summary['exported_providers'] ?? 0);
+            $componentSummary['weak_provider_guards'] = (int)($summary['weak_provider_guards'] ?? 0);
+            $componentSummary['acl_rows'] = (int)($summary['acl_rows'] ?? 0);
+        } else {
+            $componentSummary['providers'] = count($fileProviders);
+            $componentSummary['acl_rows'] = count($providerAcl);
+            foreach ($fileProviders as $row) {
+                $exported = (int)($row['exported'] ?? 0) === 1;
+                $guard = strtolower((string)($row['effective_guard'] ?? ''));
+                if ($exported) {
+                    $componentSummary['exported_providers']++;
+                }
+                if ($exported && ($guard === '' || in_array($guard, ['none', 'weak'], true))) {
+                    $componentSummary['weak_provider_guards']++;
+                }
             }
         }
     } catch (Throwable $e) {

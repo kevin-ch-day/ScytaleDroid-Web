@@ -87,6 +87,7 @@ require_once __DIR__ . '/../lib/header.php';
                     <div class="detail-stack compact-stack">
                         <?php foreach ($topApps as $row): ?>
                             <?php $pkg = (string)($row['package_name'] ?? ''); ?>
+                            <?php $scoreMeta = score_display_meta((string)($row['grade'] ?? null), $row['score_capped'] ?? null, (string)($row['source_state'] ?? '')); ?>
                             <article class="card compact-card">
                                 <div class="compact-row">
                                     <div>
@@ -95,7 +96,8 @@ require_once __DIR__ . '/../lib/header.php';
                                     </div>
                                     <div class="chip-row">
                                         <?= grade_badge((string)($row['grade'] ?? null)) ?>
-                                        <?= chip('Score ' . (string)($row['score_capped'] ?? '0'), 'medium') ?>
+                                        <?= risk_band_chip((string)($row['grade'] ?? null), $row['score_capped'] ?? null, (string)($row['source_state'] ?? '')) ?>
+                                        <?= score_chip((string)($row['grade'] ?? null), $row['score_capped'] ?? null, (string)($row['source_state'] ?? '')) ?>
                                     </div>
                                 </div>
                             </article>

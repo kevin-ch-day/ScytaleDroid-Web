@@ -17,22 +17,28 @@ $errorMsg = $context['error'];
 $details = decode_assoc_json(is_array($app) ? ($app['details_json'] ?? null) : null);
 
 $findingSummary = null;
+$reportSummaryRow = null;
 $topFindings = [];
 $permissionRows = [];
+$permissionSummaryRow = null;
 $stringsSummary = null;
 $stringSamples = [];
 $fileProviders = [];
 $providerAcl = [];
+$componentSummaryRow = null;
 $dynamicSummary = [];
 $dynamicRuns = [];
 
 if ($packageName && $activeSession && !$errorMsg && is_array($app)) {
     try {
+        $reportSummaryRow = app_report_summary($packageName, $activeSession);
         $findingSummary = app_findings_summary($packageName, $activeSession);
         $topFindings = app_findings_list($packageName, $activeSession, 8);
+        $permissionSummaryRow = app_permission_summary($packageName, $activeSession);
         $permissionRows = app_permissions($packageName, $activeSession, 12);
         $stringsSummary = app_strings_summary($packageName, $activeSession);
         $stringSamples = app_string_samples($packageName, $activeSession, 6);
+        $componentSummaryRow = app_component_summary($packageName, $activeSession);
         $fileProviders = app_fileproviders($packageName, $activeSession, 12);
         $providerAcl = app_provider_acl($packageName, $activeSession, 12);
         $dynamicSummary = app_dynamic_summary($packageName);
@@ -44,77 +50,66 @@ if ($packageName && $activeSession && !$errorMsg && is_array($app)) {
 }
 
 $selectedGrade = $activeSessionUsable
-    ? ($activeSessionRow['grade'] ?? ($app['grade'] ?? null))
+    ? ($reportSummaryRow['grade'] ?? $activeSessionRow['grade'] ?? ($app['grade'] ?? null))
     : ($app['grade'] ?? null);
 $selectedScore = $activeSessionUsable
-    ? ($activeSessionRow['score_capped'] ?? ($app['score_capped'] ?? null))
+    ? ($reportSummaryRow['score_capped'] ?? $activeSessionRow['score_capped'] ?? ($app['score_capped'] ?? null))
     : ($app['score_capped'] ?? null);
-$selectedHigh = (int)($findingSummary['high'] ?? ($activeSessionRow['high'] ?? ($app['high'] ?? 0)));
-$selectedMed = (int)($findingSummary['med'] ?? ($activeSessionRow['med'] ?? ($app['med'] ?? 0)));
-$selectedLow = (int)($findingSummary['low'] ?? ($activeSessionRow['low'] ?? ($app['low'] ?? 0)));
-$selectedInfo = (int)($findingSummary['info'] ?? ($activeSessionRow['info'] ?? ($app['info'] ?? 0)));
-$selectedDangerous = (int)($activeSessionRow['dangerous_count'] ?? ($app['dangerous_count'] ?? 0));
-$selectedHighEntropy = (int)($stringsSummary['high_entropy'] ?? ($activeSessionRow['high_entropy'] ?? ($app['high_entropy'] ?? 0)));
+$selectedHigh = (int)($reportSummaryRow['high'] ?? $findingSummary['high'] ?? ($activeSessionRow['high'] ?? ($app['high'] ?? 0)));
+$selectedMed = (int)($reportSummaryRow['med'] ?? $findingSummary['med'] ?? ($activeSessionRow['med'] ?? ($app['med'] ?? 0)));
+$selectedLow = (int)($reportSummaryRow['low'] ?? $findingSummary['low'] ?? ($activeSessionRow['low'] ?? ($app['low'] ?? 0)));
+$selectedInfo = (int)($reportSummaryRow['info'] ?? $findingSummary['info'] ?? ($activeSessionRow['info'] ?? ($app['info'] ?? 0)));
+$selectedDangerous = (int)($reportSummaryRow['dangerous_count'] ?? ($activeSessionRow['dangerous_count'] ?? ($app['dangerous_count'] ?? 0)));
+$selectedHighEntropy = (int)($reportSummaryRow['high_entropy'] ?? ($stringsSummary['high_entropy'] ?? ($activeSessionRow['high_entropy'] ?? ($app['high_entropy'] ?? 0))));
 $sessionUsability = strtolower((string)($activeSessionRow['session_usability'] ?? 'unknown'));
 $sessionUsabilitySummary = session_usability_summary_text($sessionUsability);
 $sessionUsabilityHint = session_usability_hint($sessionUsability);
+$scoreMeta = score_display_meta(
+    is_string($selectedGrade) ? $selectedGrade : null,
+    $selectedScore,
+    (string)($app['source_state'] ?? '')
+);
 $sessionHealth = [
-    'status' => (string)($activeSessionRow['run_status'] ?? 'UNKNOWN'),
-    'findings_total' => (int)($activeSessionRow['findings_total'] ?? 0),
-    'permission_rows' => (int)($activeSessionRow['permission_rows'] ?? 0),
-    'string_rows' => (int)($activeSessionRow['string_rows'] ?? 0),
-    'audit_rows' => (int)($activeSessionRow['audit_rows'] ?? 0),
-    'link_rows' => (int)($activeSessionRow['link_rows'] ?? 0),
+    'status' => (string)($reportSummaryRow['run_status'] ?? ($activeSessionRow['run_status'] ?? 'UNKNOWN')),
+    'findings_total' => (int)($reportSummaryRow['findings_total'] ?? ($activeSessionRow['findings_total'] ?? 0)),
+    'permission_rows' => (int)($reportSummaryRow['permission_rows'] ?? ($activeSessionRow['permission_rows'] ?? 0)),
+    'string_rows' => (int)($reportSummaryRow['string_rows'] ?? ($activeSessionRow['string_rows'] ?? 0)),
+    'audit_rows' => (int)($reportSummaryRow['audit_rows'] ?? ($activeSessionRow['audit_rows'] ?? 0)),
+    'link_rows' => (int)($reportSummaryRow['link_rows'] ?? ($activeSessionRow['link_rows'] ?? 0)),
 ];
 
 $componentSummary = [
-    'providers' => count($fileProviders),
-    'exported_providers' => 0,
-    'weak_provider_guards' => 0,
-    'acl_rows' => count($providerAcl),
+    'providers' => (int)($reportSummaryRow['providers'] ?? ($componentSummaryRow['providers'] ?? count($fileProviders))),
+    'exported_providers' => (int)($reportSummaryRow['exported_providers'] ?? ($componentSummaryRow['exported_providers'] ?? 0)),
+    'weak_provider_guards' => (int)($reportSummaryRow['weak_provider_guards'] ?? ($componentSummaryRow['weak_provider_guards'] ?? 0)),
+    'acl_rows' => (int)($reportSummaryRow['acl_rows'] ?? ($componentSummaryRow['acl_rows'] ?? count($providerAcl))),
 ];
-foreach ($fileProviders as $row) {
-    $exported = (int)($row['exported'] ?? 0) === 1;
-    if ($exported) {
-        $componentSummary['exported_providers']++;
-    }
-    $guard = strtolower((string)($row['effective_guard'] ?? ''));
-    if ($exported && ($guard === '' || in_array($guard, ['none', 'weak'], true))) {
-        $componentSummary['weak_provider_guards']++;
+if (!is_array($componentSummaryRow)) {
+    foreach ($fileProviders as $row) {
+        $exported = (int)($row['exported'] ?? 0) === 1;
+        if ($exported) {
+            $componentSummary['exported_providers']++;
+        }
+        $guard = strtolower((string)($row['effective_guard'] ?? ''));
+        if ($exported && ($guard === '' || in_array($guard, ['none', 'weak'], true))) {
+            $componentSummary['weak_provider_guards']++;
+        }
     }
 }
 
-$sessionType = session_type_label((string)$activeSession, (string)($activeSessionRow['profile'] ?? ''));
-
-$riskBand = null;
-foreach ($topFindings as $row) {
-    $title = (string)($row['title'] ?? '');
-    if (preg_match('/^Composite risk\s+[—-]\s+(.+)$/iu', $title, $matches)) {
-        $riskBand = trim((string)($matches[1] ?? ''));
-        break;
-    }
-}
+$sessionType = (string)($activeSessionRow['session_type_label'] ?? session_type_label((string)$activeSession, (string)($activeSessionRow['profile'] ?? '')));
 
 $permissionSummary = [
-    'dangerous' => 0,
-    'signature_privileged' => 0,
-    'special_access' => 0,
-    'custom_defined' => 0,
+    'dangerous' => (int)($reportSummaryRow['dangerous_count'] ?? ($permissionSummaryRow['dangerous_count'] ?? 0)),
+    'signature_privileged' => (int)(
+        ($reportSummaryRow['signature_count'] ?? $permissionSummaryRow['signature_count'] ?? 0)
+        + ($reportSummaryRow['privileged_count'] ?? $permissionSummaryRow['privileged_count'] ?? 0)
+    ),
+    'special_access' => (int)($reportSummaryRow['special_access_count'] ?? ($permissionSummaryRow['special_access_count'] ?? 0)),
+    'custom_defined' => (int)($reportSummaryRow['custom_count'] ?? ($permissionSummaryRow['custom_count'] ?? 0)),
 ];
 $permissionHighlights = [];
 foreach ($permissionRows as $row) {
-    if ((int)($row['is_runtime_dangerous'] ?? 0) === 1) {
-        $permissionSummary['dangerous']++;
-    }
-    if ((int)($row['is_signature'] ?? 0) === 1 || (int)($row['is_privileged'] ?? 0) === 1) {
-        $permissionSummary['signature_privileged']++;
-    }
-    if ((int)($row['is_special_access'] ?? 0) === 1) {
-        $permissionSummary['special_access']++;
-    }
-    if ((int)($row['is_custom'] ?? 0) === 1) {
-        $permissionSummary['custom_defined']++;
-    }
     if (count($permissionHighlights) < 4) {
         $permissionHighlights[] = [
             'name' => (string)($row['permission_name'] ?? ''),
@@ -122,6 +117,22 @@ foreach ($permissionRows as $row) {
             'source' => (string)($row['source'] ?? '—'),
             'weight' => (int)($row['severity'] ?? 0),
         ];
+    }
+}
+if (!is_array($permissionSummaryRow)) {
+    foreach ($permissionRows as $row) {
+        if ((int)($row['is_runtime_dangerous'] ?? 0) === 1) {
+            $permissionSummary['dangerous']++;
+        }
+        if ((int)($row['is_signature'] ?? 0) === 1 || (int)($row['is_privileged'] ?? 0) === 1) {
+            $permissionSummary['signature_privileged']++;
+        }
+        if ((int)($row['is_special_access'] ?? 0) === 1) {
+            $permissionSummary['special_access']++;
+        }
+        if ((int)($row['is_custom'] ?? 0) === 1) {
+            $permissionSummary['custom_defined']++;
+        }
     }
 }
 
@@ -154,11 +165,11 @@ foreach ($stringSamples as $row) {
 }
 
 $topRiskPatterns = [];
-if ($riskBand) {
+if (!empty($scoreMeta['risk_band'])) {
     $topRiskPatterns[] = [
         'title' => 'Composite risk posture',
-        'summary' => 'Risk band: ' . $riskBand,
-        'tone' => 'high',
+        'summary' => 'Normalized score ' . (string)$scoreMeta['normalized_score_text'] . ' · Risk band: ' . (string)$scoreMeta['risk_band'],
+        'tone' => strtolower((string)($scoreMeta['risk_band_tone'] ?? 'high')),
     ];
 }
 if ($componentSummary['weak_provider_guards'] > 0) {
@@ -238,8 +249,9 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <div class="metrics-grid">
-          <div class="metric-card"><span class="metric-label">Static Grade</span><span class="metric-value"><?= e((string)($selectedGrade ?? '-')) ?></span></div>
-          <div class="metric-card"><span class="metric-label">Normalized Score</span><span class="metric-value"><?= e((string)($selectedScore ?? '—')) ?></span></div>
+          <div class="metric-card"><span class="metric-label">Static Grade</span><span class="metric-value"><?= e((string)$scoreMeta['grade_text']) ?></span></div>
+          <div class="metric-card"><span class="metric-label">Normalized Score</span><span class="metric-value"><?= e((string)$scoreMeta['normalized_score_text']) ?></span></div>
+          <div class="metric-card"><span class="metric-label">Risk Band</span><span class="metric-value"><?= e((string)($scoreMeta['risk_band'] ?? '—')) ?></span></div>
           <div class="metric-card"><span class="metric-label">Findings H/M/L/I</span><span class="metric-value"><?= e(fmt_hml($selectedHigh, $selectedMed, $selectedLow, $selectedInfo)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Dangerous Permissions</span><span class="metric-value bad"><?= e((string)$selectedDangerous) ?></span></div>
           <div class="metric-card"><span class="metric-label">Exported Providers</span><span class="metric-value warn"><?= e((string)$componentSummary['exported_providers']) ?></span></div>

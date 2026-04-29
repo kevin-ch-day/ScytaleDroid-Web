@@ -133,6 +133,9 @@ SELECT
   created_at,
   run_status,
   profile,
+  session_type_key,
+  session_type_label,
+  session_hidden_by_default,
   findings_total,
   non_canonical_reasons,
   high,
@@ -212,65 +215,73 @@ SQL;
 
 const SQL_APP_STRINGS_SUMMARY = <<<SQL
 SELECT
-  sss.*,
-  sfs.details AS findings_details
-FROM static_string_summary sss
-LEFT JOIN static_findings_summary sfs
-  ON sfs.package_name COLLATE utf8mb4_unicode_ci = sss.package_name COLLATE utf8mb4_unicode_ci
- AND sfs.session_stamp COLLATE utf8mb4_unicode_ci = sss.session_stamp COLLATE utf8mb4_unicode_ci
-WHERE sss.package_name = :pkg_strings_summary
-  AND sss.session_stamp = :session_strings_summary
+  *
+FROM v_web_app_string_summary
+WHERE package_name = :pkg_strings_summary
+  AND session_stamp = :session_strings_summary
 LIMIT 1
 SQL;
 
 const SQL_APP_STRING_SAMPLES = <<<SQL
 SELECT
-  sss.bucket,
-  sss.value_masked,
-  sss.src,
-  sss.tag,
-  sss.source_type,
-  sss.finding_type,
-  sss.provider,
-  sss.risk_tag,
-  sss.confidence,
-  sss.root_domain,
-  sss.resource_name,
-  sss.scheme,
-  sss.rank
-FROM static_string_selected_samples sss
-JOIN static_string_summary summary
-  ON summary.id = sss.summary_id
-WHERE summary.package_name = :pkg_string_samples
-  AND summary.session_stamp = :session_string_samples
-ORDER BY sss.bucket ASC, sss.rank ASC, sss.id ASC
+  bucket,
+  value_masked,
+  src,
+  tag,
+  source_type,
+  finding_type,
+  provider,
+  risk_tag,
+  confidence,
+  root_domain,
+  resource_name,
+  scheme,
+  rank
+FROM v_web_app_string_samples
+WHERE package_name = :pkg_string_samples
+  AND session_stamp = :session_string_samples
+ORDER BY bucket ASC, rank ASC, sample_id ASC
 SQL;
 
 const SQL_APP_PERMISSIONS = <<<SQL
 SELECT
-  spm.permission_name,
-  spm.source,
-  spm.protection,
-  spm.severity,
-  spm.is_runtime_dangerous,
-  spm.is_signature,
-  spm.is_privileged,
-  spm.is_special_access,
-  spm.is_custom
-FROM static_permission_matrix spm
-JOIN static_analysis_runs sar
-  ON sar.id = spm.run_id
-JOIN app_versions av
-  ON av.id = sar.app_version_id
-JOIN apps a
-  ON a.id = av.app_id
-WHERE a.package_name = :pkg_permissions
-  AND sar.session_stamp = :session_permissions
-ORDER BY spm.severity DESC, spm.permission_name ASC
+  permission_name,
+  source,
+  protection,
+  severity,
+  is_runtime_dangerous,
+  is_signature,
+  is_privileged,
+  is_special_access,
+  is_custom
+FROM v_web_app_permissions
+WHERE package_name = :pkg_permissions
+  AND session_stamp = :session_permissions
+ORDER BY severity DESC, permission_name ASC
+SQL;
+
+const SQL_APP_PERMISSION_SUMMARY = <<<SQL
+SELECT
+  package_name,
+  static_run_id,
+  session_stamp,
+  permission_rows,
+  dangerous_count,
+  signature_count,
+  privileged_count,
+  special_access_count,
+  custom_count,
+  max_weight
+FROM v_web_app_permission_summary
+WHERE package_name = :pkg_permission_summary
+  AND session_stamp = :session_permission_summary
+LIMIT 1
 SQL;
 
 const SQL_APP_FILEPROVIDERS = <<<SQL
 SELECT
+  package_name,
+  session_stamp,
   provider_name,
   component_name,
   authority,
@@ -281,7 +292,7 @@ SELECT
   write_permission,
   base_permission,
   created_at
-FROM static_fileproviders
+FROM v_web_app_components
 WHERE package_name = :pkg_fileproviders
   AND session_stamp = :session_fileproviders
 ORDER BY exported DESC, COALESCE(risk, '') DESC, provider_name ASC
@@ -289,6 +300,8 @@ SQL;
 
 const SQL_APP_PROVIDER_ACL = <<<SQL
 SELECT
+  package_name,
+  session_stamp,
   provider_name,
   authority,
   path,
@@ -300,16 +313,42 @@ SELECT
   write_perm,
   base_perm,
   created_at
-FROM static_provider_acl
+FROM v_web_app_component_acl
 WHERE package_name = :pkg_provider_acl
   AND session_stamp = :session_provider_acl
 ORDER BY exported DESC, provider_name ASC, path ASC
+SQL;
+
+const SQL_APP_COMPONENT_SUMMARY = <<<SQL
+SELECT
+  package_name,
+  session_stamp,
+  providers,
+  exported_providers,
+  weak_provider_guards,
+  acl_rows
+FROM v_web_app_component_summary
+WHERE package_name = :pkg_component_summary
+  AND session_stamp = :session_component_summary
+LIMIT 1
+SQL;
+
+const SQL_APP_REPORT_SUMMARY = <<<SQL
+SELECT
+  *
+FROM v_web_app_report_summary
+WHERE package_name = :pkg_report_summary
+  AND session_stamp = :session_report_summary
+LIMIT 1
 SQL;
 
 const SQL_FINDINGS_EXPLORER_BASE = <<<SQL
 SELECT
   latest.package_name,
   latest.app_label,
+  latest.profile_key,
+  latest.profile_label,
+  latest.publisher_key,
   latest.session_stamp,
   latest.version_name,
   latest.severity,
@@ -333,6 +372,11 @@ SELECT
   latest.title AS group_value,
   COUNT(*) AS finding_rows,
   COUNT(DISTINCT latest.package_name) AS affected_apps,
+  SUM(CASE WHEN latest.severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
+  SUM(CASE WHEN latest.severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN latest.severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN latest.severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  SUM(CASE WHEN latest.severity = 'info' THEN 1 ELSE 0 END) AS info_rows,
   MAX(latest.severity) AS dominant_severity,
   latest.category AS category,
   latest.masvs_area AS masvs_area
@@ -344,6 +388,11 @@ SELECT
   latest.detector AS group_value,
   COUNT(*) AS finding_rows,
   COUNT(DISTINCT latest.package_name) AS affected_apps,
+  SUM(CASE WHEN latest.severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
+  SUM(CASE WHEN latest.severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN latest.severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN latest.severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  SUM(CASE WHEN latest.severity = 'info' THEN 1 ELSE 0 END) AS info_rows,
   MAX(latest.severity) AS dominant_severity,
   latest.category AS category,
   latest.masvs_area AS masvs_area
@@ -355,22 +404,42 @@ SELECT
   app_label AS group_value,
   package_name,
   COUNT(*) AS finding_rows,
+  SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
   SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
   SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
   SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) AS info_rows,
   MAX(severity) AS dominant_severity
-FROM v_web_app_findings
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_GROUP_MASVS_BASE = <<<SQL
 SELECT
-  masvs_area AS group_value,
+  latest.masvs_area AS group_value,
   COUNT(*) AS finding_rows,
-  COUNT(DISTINCT package_name) AS affected_apps,
-  SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
-  SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
-  SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) AS low_rows
-FROM v_web_app_findings
+  COUNT(DISTINCT latest.package_name) AS affected_apps,
+  SUM(CASE WHEN latest.severity = 'critical' THEN 1 ELSE 0 END) AS critical_rows,
+  SUM(CASE WHEN latest.severity = 'high' THEN 1 ELSE 0 END) AS high_rows,
+  SUM(CASE WHEN latest.severity = 'medium' THEN 1 ELSE 0 END) AS medium_rows,
+  SUM(CASE WHEN latest.severity = 'low' THEN 1 ELSE 0 END) AS low_rows,
+  SUM(CASE WHEN latest.severity = 'info' THEN 1 ELSE 0 END) AS info_rows
+FROM v_web_app_findings latest
+SQL;
+
+const SQL_FINDINGS_EXPLORER_SOURCE_SUMMARY = <<<SQL
+SELECT
+  COUNT(*) AS finding_rows,
+  COUNT(DISTINCT latest.package_name) AS affected_apps,
+  COUNT(DISTINCT latest.session_stamp) AS session_count,
+  COALESCE((
+    SELECT latest2.session_stamp
+    FROM v_web_app_findings latest2
+    %s
+    GROUP BY latest2.session_stamp
+    ORDER BY COUNT(*) DESC, latest2.session_stamp DESC
+    LIMIT 1
+  ), '') AS primary_session_stamp
+FROM v_web_app_findings latest
 SQL;
 
 const SQL_FINDINGS_EXPLORER_ORDER = <<<SQL
@@ -561,6 +630,9 @@ SELECT
   session_stamp,
   created_at,
   status,
+  session_type_key,
+  session_type_label,
+  session_hidden_by_default,
   app_runs,
   findings_ready,
   permissions_ready,

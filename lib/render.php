@@ -149,12 +149,7 @@ function app_directory_grade_badge(?string $grade, ?string $sourceState): string
 
 function app_directory_score_text($scoreCapped, ?string $sourceState): string
 {
-    $state = strtolower(trim((string)$sourceState));
-    if (in_array($state, ['catalog', 'catalog_only'], true)) {
-        return '—';
-    }
-    $score = trim((string)($scoreCapped ?? ''));
-    return $score !== '' ? $score : 'Risk score missing';
+    return score_display_meta(null, $scoreCapped, $sourceState)['normalized_score_text'];
 }
 
 function app_directory_hmli_text(array $row): string
@@ -164,6 +159,87 @@ function app_directory_hmli_text(array $row): string
         return 'Not analyzed';
     }
     return fmt_hml($row['high'] ?? 0, $row['med'] ?? 0, $row['low'] ?? 0, isset($row['info']) ? (int)$row['info'] : null);
+}
+
+/** Shared analyst-facing score contract. Raw/internal scores stay diagnostics-only. */
+function score_display_meta(?string $grade, $scoreCapped, ?string $sourceState = null): array
+{
+    $state = strtolower(trim((string)$sourceState));
+    $catalogOnly = in_array($state, ['catalog', 'catalog_only'], true);
+    $gradeText = strtoupper(trim((string)$grade));
+    $scoreRaw = trim((string)($scoreCapped ?? ''));
+    $scorePresent = $scoreRaw !== '' && is_numeric($scoreRaw);
+
+    $normalizedScoreText = 'Risk score missing';
+    $normalizedScoreShort = null;
+    if ($catalogOnly) {
+        $normalizedScoreText = '—';
+    } elseif ($scorePresent) {
+        $normalizedScoreText = number_format((float)$scoreRaw, 3, '.', '');
+        $normalizedScoreShort = $normalizedScoreText;
+    }
+
+    $band = null;
+    if ($scorePresent) {
+        $scoreValue = (float)$scoreRaw;
+        if ($scoreValue >= 8.0) {
+            $band = 'Critical';
+        } elseif ($scoreValue >= 6.0) {
+            $band = 'High';
+        } elseif ($scoreValue >= 4.0) {
+            $band = 'Medium';
+        } elseif ($scoreValue >= 2.0) {
+            $band = 'Low';
+        } else {
+            $band = 'Minimal';
+        }
+    } elseif ($gradeText !== '') {
+        $band = match ($gradeText) {
+            'F' => 'Critical',
+            'D' => 'High',
+            'C' => 'Medium',
+            'B' => 'Low',
+            'A' => 'Minimal',
+            default => null,
+        };
+    }
+
+    $bandTone = match ($band) {
+        'Critical' => 'critical',
+        'High' => 'high',
+        'Medium' => 'medium',
+        'Low' => 'low',
+        'Minimal' => 'info',
+        default => 'muted',
+    };
+
+    return [
+        'grade_text' => $catalogOnly ? 'Not analyzed' : ($gradeText !== '' ? $gradeText : '—'),
+        'normalized_score_text' => $normalizedScoreText,
+        'normalized_score_short' => $normalizedScoreShort,
+        'risk_band' => $band,
+        'risk_band_tone' => $bandTone,
+        'has_score' => $scorePresent,
+        'is_catalog_only' => $catalogOnly,
+    ];
+}
+
+function score_chip(?string $grade, $scoreCapped, ?string $sourceState = null): string
+{
+    $meta = score_display_meta($grade, $scoreCapped, $sourceState);
+    if (!$meta['has_score'] || $meta['normalized_score_short'] === null) {
+        return chip($meta['normalized_score_text'], 'muted');
+    }
+    return chip('Score ' . $meta['normalized_score_short'], 'medium');
+}
+
+function risk_band_chip(?string $grade, $scoreCapped, ?string $sourceState = null): string
+{
+    $meta = score_display_meta($grade, $scoreCapped, $sourceState);
+    if (!$meta['risk_band']) {
+        return chip('Risk band unavailable', 'muted');
+    }
+    return chip((string)$meta['risk_band'], (string)$meta['risk_band_tone']);
 }
 
 /** Session stamp/profile -> session type metadata */

@@ -79,10 +79,12 @@ require_once __DIR__ . '/../lib/header.php';
                   $stateHint = session_usability_hint($state);
                   $stateSummary = session_usability_summary_text($state);
                   $typeHint = session_type_hint((string)($row['session_stamp'] ?? ''), null);
+                  $typeLabel = (string)($row['session_type_label'] ?? session_type_label((string)($row['session_stamp'] ?? ''), null));
+                  $typeTone = (string)(session_type_meta((string)($row['session_stamp'] ?? ''), null)['tone'] ?? 'muted');
                   ?>
                   <tr>
                     <td><span class="session-stamp"><?= e((string)($row['session_stamp'] ?? '')) ?></span></td>
-                    <td><span title="<?= e($typeHint) ?>"><?= session_type_chip((string)($row['session_stamp'] ?? ''), null) ?></span></td>
+                    <td><span title="<?= e($typeHint) ?>"><?= chip($typeLabel, $typeTone) ?></span></td>
                     <td class="col-center"><?= status_chip((string)($row['status'] ?? 'UNKNOWN')) ?></td>
                     <td class="col-num"><?= e((string)$appRuns) ?></td>
                     <td class="col-num"><?= e((string)$findingsReady) ?></td>

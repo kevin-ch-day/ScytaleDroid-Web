@@ -19,7 +19,10 @@ $auditLabel = $activeSessionUsable ? 'Selected session audit' : 'Latest complete
 $activeSessionState = (string)($activeSessionRow['session_usability'] ?? 'unknown');
 $activeSessionStateSummary = session_usability_summary_text($activeSessionState);
 $activeSessionStateHint = session_usability_hint($activeSessionState);
+$activeSessionTypeLabel = (string)($activeSessionRow['session_type_label'] ?? session_type_label((string)$activeSession, (string)($activeSessionRow['profile'] ?? '')));
 $activeSessionTypeHint = session_type_hint((string)$activeSession, (string)($activeSessionRow['profile'] ?? ''));
+$scoreMeta = score_display_meta(is_string($grade) ? $grade : null, $score, $app['source_state'] ?? null);
+$activeSessionTypeTone = (string)(session_type_meta((string)$activeSession, (string)($activeSessionRow['profile'] ?? ''))['tone'] ?? 'muted');
 ?>
 
 <section class="section detail-hero">
@@ -37,7 +40,7 @@ $activeSessionTypeHint = session_type_hint((string)$activeSession, (string)($act
         <?= grade_badge(is_string($grade) ? $grade : null) ?>
         <?php if ($activeSession): ?>
           <?= chip('Data source ' . $activeSession, 'info') ?>
-          <span title="<?= e($activeSessionTypeHint) ?>"><?= session_type_chip((string)$activeSession, (string)($activeSessionRow['profile'] ?? '')) ?></span>
+          <span title="<?= e($activeSessionTypeHint) ?>"><?= chip($activeSessionTypeLabel, $activeSessionTypeTone) ?></span>
         <?php endif; ?>
         <?php if ($runStatus): ?>
           <?= status_chip((string)$runStatus) ?>
@@ -45,8 +48,11 @@ $activeSessionTypeHint = session_type_hint((string)$activeSession, (string)($act
         <?php if ($activeSessionRow): ?>
           <span title="<?= e($activeSessionStateHint) ?>"><?= session_usability_chip($activeSessionState) ?></span>
         <?php endif; ?>
-        <?php if ($score !== null && $score !== ''): ?>
-          <?= chip('Score ' . $score, 'medium') ?>
+        <?php if (!empty($scoreMeta['risk_band'])): ?>
+          <?= risk_band_chip(is_string($grade) ? $grade : null, $score, $app['source_state'] ?? null) ?>
+        <?php endif; ?>
+        <?php if (!empty($scoreMeta['has_score'])): ?>
+          <?= score_chip(is_string($grade) ? $grade : null, $score, $app['source_state'] ?? null) ?>
         <?php endif; ?>
       </div>
     </div>

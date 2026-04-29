@@ -20,6 +20,8 @@
           $activeUsabilityState = (string)($activeSessionRow['session_usability'] ?? 'unknown');
           $activeUsabilityHint = session_usability_hint($activeUsabilityState);
           $activeUsabilitySummary = session_usability_summary_text($activeUsabilityState);
+          $activeSessionTypeLabel = (string)($activeSessionRow['session_type_label'] ?? session_type_label((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? '')));
+          $activeSessionTypeHint = session_type_hint((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? ''));
           ?>
           <div class="session-summary">
             <div class="session-summary-main">
@@ -31,7 +33,7 @@
               <div class="table-subline muted"><?= e($activeUsabilitySummary) ?></div>
             </div>
             <div class="chip-row">
-              <span title="<?= e(session_type_hint((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? ''))) ?>"><?= session_type_chip((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? '')) ?></span>
+              <span title="<?= e($activeSessionTypeHint) ?>"><?= chip($activeSessionTypeLabel, (string)session_type_meta((string)($activeSessionRow['session_stamp'] ?? ''), (string)($activeSessionRow['profile'] ?? ''))['tone']) ?></span>
               <?= status_chip((string)($activeSessionRow['run_status'] ?? 'UNKNOWN')) ?>
               <span title="<?= e($activeUsabilityHint) ?>"><?= session_usability_chip($activeUsabilityState) ?></span>
               <?php if (!empty($activeSessionRow['grade']) && $activeSessionUsable): ?>
@@ -70,7 +72,9 @@
             $hiddenByType = 0;
             foreach ($sessions as $row) {
                 $state = strtolower((string)($row['session_usability'] ?? ''));
-                $typeHidden = session_type_hidden_by_default((string)($row['session_stamp'] ?? ''), (string)($row['profile'] ?? ''));
+                $typeHidden = array_key_exists('session_hidden_by_default', $row)
+                    ? (int)($row['session_hidden_by_default'] ?? 0) === 1
+                    : session_type_hidden_by_default((string)($row['session_stamp'] ?? ''), (string)($row['profile'] ?? ''));
                 if ((int)($row['is_usable_complete'] ?? 0) === 1) {
                     if ($typeHidden) {
                         $hiddenByType++;
@@ -124,11 +128,12 @@
                     $stamp = (string)($row['session_stamp'] ?? '');
                     $href = url('pages/' . ltrim($sessionPage, '/')) . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($stamp);
                     $active = $stamp !== '' && $stamp === $activeSession;
+                    $typeLabel = (string)($row['session_type_label'] ?? session_type_label($stamp, (string)($row['profile'] ?? '')));
                     ?>
                     <a class="session-link<?= $active ? ' is-active' : '' ?>" href="<?= e($href) ?>">
                       <span class="session-link-main"><?= e($stamp) ?></span>
                       <span class="session-link-meta">
-                        <?= e(session_type_label($stamp, (string)($row['profile'] ?? ''))) ?>
+                        <?= e($typeLabel) ?>
                         ·
                         <?= e((string)($row['run_status'] ?? 'UNKNOWN')) ?>
                         · <?= e(fmt_hml((int)($row['high'] ?? 0), (int)($row['med'] ?? 0), (int)($row['low'] ?? 0), (int)($row['info'] ?? 0))) ?>
