@@ -1,7 +1,7 @@
 <?php
 // pages/_partials/table_apps.php
 // Expected variables (extracted by index.php):
-// $rows, $total, $page, $size, $baseUrl, $persist, $severityTotals
+// $rows, $total, $page, $size, $baseUrl, $persist, $severityTotals, $analyzedCount, $catalogOnlyCount, $groupSearchResults, $analyzedRows, $catalogOnlyRows
 ?>
 
 <section class="panel" data-panel="results">
@@ -21,6 +21,7 @@
       <div class="metric-card">
         <span class="metric-label">Tracked Apps</span>
         <span class="metric-value"><?= e((string)$total) ?></span>
+        <p class="muted">Analyzed <?= e((string)($analyzedCount ?? 0)) ?><?php if (!empty($catalogOnlyCount)): ?> • Catalog-only <?= e((string)$catalogOnlyCount) ?><?php endif; ?></p>
       </div>
       <div class="metric-card">
         <span class="metric-label">Latest Session (page)</span>
@@ -57,7 +58,7 @@
             <th class="col-center">Grade</th>
             <th class="col-num">Score</th>
             <th class="col-center">H/M/L</th>
-            <th>Run Context</th>
+            <th>Data State</th>
             <th>Last Scanned</th>
           </tr>
         </thead>
@@ -69,12 +70,16 @@
               </td>
             </tr>
           <?php else: ?>
-            <?php foreach ($rows as $r): ?>
-              <?php
+            <?php
+            $renderRow = static function (array $r): void {
               $pkg = $r['package_name'] ?? '';
               $viewUrl = $pkg ? url('pages/app_report.php') . '?pkg=' . urlencode($pkg) : null;
-              $hml = fmt_hml($r['high'] ?? 0, $r['med'] ?? 0, $r['low'] ?? 0);
-              ?>
+              $hml = app_directory_hmli_text($r);
+              $state = (string)($r['source_state'] ?? null);
+              $sessionStamp = trim((string)($r['session_stamp'] ?? ''));
+              $profile = trim((string)($r['profile_label'] ?? ''));
+              $category = trim((string)($r['category'] ?? ''));
+            ?>
               <tr>
                 <td class="cell-clip">
                   <div class="app-primary">
@@ -84,7 +89,7 @@
                       <?= e($r['app_label'] ?? $pkg) ?>
                     <?php endif; ?>
                   </div>
-                  <div class="table-subline"><?= e($r['category'] ?? 'Uncategorized') ?></div>
+                  <div class="table-subline"><?= e($profile !== '' ? $profile : ($category !== '' ? $category : 'Unclassified')) ?></div>
                   <div class="package-inline">
                     <?php if ($viewUrl): ?>
                       <a href="<?= e($viewUrl) ?>" class="muted js-package package-link" data-package="<?= e($pkg) ?>"><?= e($pkg) ?></a>
@@ -96,18 +101,31 @@
                     <?php endif; ?>
                   </div>
                 </td>
-                <td class="col-center"><?= grade_badge($r['grade'] ?? null) ?></td>
-                <td class="col-num"><?= e(isset($r['score_capped']) ? (string)$r['score_capped'] : '') ?></td>
+                <td class="col-center"><?= app_directory_grade_badge($r['grade'] ?? null, $state) ?></td>
+                <td class="col-num"><?= e(app_directory_score_text($r['score_capped'] ?? null, $state)) ?></td>
                 <td class="col-center" data-hml="<?= e($hml) ?>"><?= e($hml) ?></td>
                 <td>
                   <div class="meta-stack">
-                    <span class="session-stamp"><?= e($r['session_stamp'] ?? '') ?></span>
-                    <span class="table-subline"><?= source_state_chip($r['source_state'] ?? null) ?></span>
+                    <span class="table-subline"><?= source_state_chip($state) ?></span>
+                    <span class="session-stamp"><?= e($sessionStamp !== '' ? $sessionStamp : '—') ?></span>
                   </div>
                 </td>
-                <td class="nowrap"><?= e(fmt_date($r['last_scanned'] ?? null)) ?></td>
+                <td class="nowrap"><?= e(fmt_date($r['last_scanned'] ?? null) ?: '—') ?></td>
               </tr>
-            <?php endforeach; ?>
+            <?php };
+            ?>
+            <?php if (!empty($groupSearchResults)): ?>
+              <tr class="table-group-row">
+                <td colspan="6">Primary analyzed apps</td>
+              </tr>
+              <?php foreach ($analyzedRows as $r): $renderRow($r); endforeach; ?>
+              <tr class="table-group-row">
+                <td colspan="6">Related catalog packages</td>
+              </tr>
+              <?php foreach ($catalogOnlyRows as $r): $renderRow($r); endforeach; ?>
+            <?php else: ?>
+              <?php foreach ($rows as $r): $renderRow($r); endforeach; ?>
+            <?php endif; ?>
           <?php endif; ?>
         </tbody>
       </table>

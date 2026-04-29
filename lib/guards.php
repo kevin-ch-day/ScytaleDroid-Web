@@ -84,3 +84,19 @@ function guard_choice(?string $value, array $allowed): ?string
     }
     return null;
 }
+
+/** Checkbox/bool-ish query guard with explicit default. */
+function guard_bool($value, bool $default = false): bool
+{
+    if ($value === null) {
+        return $default;
+    }
+    if (is_bool($value)) {
+        return $value;
+    }
+    $normalized = strtolower(trim((string)$value));
+    if ($normalized === '') {
+        return $default;
+    }
+    return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+}

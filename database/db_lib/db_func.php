@@ -169,12 +169,17 @@ function _positive_limit(int $limit, int $max = 250): int
  *
  * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,size:int}
  */
-function apps_directory_paged(?string $category, ?string $q, int $page, int $size): array
+function apps_directory_paged(?string $category, ?string $q, bool $includeCatalogOnly, int $page, int $size): array
 {
     [$where, $params] = _apps_dir_where([
         'category' => $category,
         'q' => $q,
     ]);
+
+    if (!$includeCatalogOnly) {
+        $extra = "source_state <> 'catalog_only'";
+        $where = $where === '' ? ('WHERE ' . $extra) : ($where . ' AND ' . $extra);
+    }
 
     return db_paged(
         SQL_APPS_DIR_BASE,
@@ -185,7 +190,7 @@ function apps_directory_paged(?string $category, ?string $q, int $page, int $siz
         $page,
         $size,
         60,
-        'apps_directory_' . sha1(json_encode([$where, $params], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
+        'apps_directory_' . sha1(json_encode([$where, $params, $includeCatalogOnly], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
     );
 }
 

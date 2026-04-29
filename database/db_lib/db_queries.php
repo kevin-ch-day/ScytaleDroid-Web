@@ -32,13 +32,13 @@ const SQL_APPS_DIR_ORDER = "ORDER BY COALESCE(score_capped, 0) DESC, package_nam
 const SQL_DASHBOARD_OVERVIEW = <<<SQL
 SELECT
   COUNT(*) AS tracked_apps,
-  SUM(CASE WHEN source_state = 'static+permission_audit' THEN 1 ELSE 0 END) AS analyzed_apps,
-  SUM(CASE WHEN source_state = 'catalog' THEN 1 ELSE 0 END) AS catalog_only_apps,
+  SUM(CASE WHEN source_state <> 'catalog_only' THEN 1 ELSE 0 END) AS analyzed_apps,
+  SUM(CASE WHEN source_state = 'catalog_only' THEN 1 ELSE 0 END) AS catalog_only_apps,
   SUM(COALESCE(high, 0)) AS high_total,
   SUM(COALESCE(med, 0)) AS med_total,
   SUM(COALESCE(low, 0)) AS low_total,
   COUNT(DISTINCT CASE
-    WHEN source_state IN ('static', 'static+permission_audit') THEN session_stamp
+    WHEN source_state <> 'catalog_only' THEN session_stamp
     ELSE NULL
   END) AS static_sessions
 FROM v_web_app_directory
@@ -50,7 +50,7 @@ SELECT
   COUNT(*) AS app_count,
   ROUND(AVG(COALESCE(score_capped, 0)), 2) AS avg_score,
   SUM(COALESCE(high, 0)) AS high_total,
-  SUM(CASE WHEN source_state = 'static+permission_audit' THEN 1 ELSE 0 END) AS analyzed_apps
+  SUM(CASE WHEN source_state <> 'catalog_only' THEN 1 ELSE 0 END) AS analyzed_apps
 FROM v_web_app_directory
 GROUP BY category
 ORDER BY app_count DESC, category ASC
@@ -89,11 +89,11 @@ SELECT
   risk.permission_audit_snapshot_key AS snapshot_key,
   dir.last_scanned,
   CASE
-    WHEN dir.source_state IN ('permission_audit', 'static+permission_audit') THEN dir.session_stamp
+    WHEN dir.source_state IN ('permission_audit_only', 'static_findings+risk+permission_audit') THEN dir.session_stamp
     ELSE NULL
   END AS latest_audit_session,
   CASE
-    WHEN dir.source_state IN ('static', 'static+permission_audit') THEN dir.session_stamp
+    WHEN dir.source_state IN ('static_findings', 'static_findings+risk', 'static_findings+risk+permission_audit') THEN dir.session_stamp
     ELSE NULL
   END AS latest_static_session,
   COALESCE(findings.canonical_high, 0) AS high,

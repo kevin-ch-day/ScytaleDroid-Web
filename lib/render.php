@@ -66,18 +66,57 @@ function status_chip(?string $status): string
 function source_state_chip(?string $state): string
 {
     $normalized = strtolower(trim((string)$state));
-    $label = $normalized !== '' ? str_replace('_', ' ', $normalized) : 'unknown';
     $tone = 'muted';
+    $label = match ($normalized) {
+        'catalog', 'catalog_only' => 'Catalog only',
+        'static' => 'Static findings',
+        'static_findings' => 'Static findings',
+        'static+permission_audit' => 'Static + risk',
+        'static_findings+risk' => 'Static + risk',
+        'static_findings+risk+permission_audit' => 'Static + risk + audit',
+        'permission_audit' => 'Permission audit',
+        'permission_audit_only' => 'Permission audit',
+        'risk_score_only' => 'Risk score only',
+        default => $normalized !== '' ? str_replace('_', ' ', $normalized) : 'unknown',
+    };
 
-    if ($normalized === 'static+permission_audit') {
+    if (in_array($normalized, ['static+permission_audit', 'static_findings+risk', 'static_findings+risk+permission_audit'], true)) {
         $tone = 'info';
-    } elseif ($normalized === 'static') {
+    } elseif (in_array($normalized, ['static', 'static_findings'], true)) {
         $tone = 'low';
-    } elseif ($normalized === 'permission_audit') {
+    } elseif (in_array($normalized, ['permission_audit', 'permission_audit_only', 'risk_score_only'], true)) {
         $tone = 'medium';
     }
 
     return chip($label, $tone);
+}
+
+function app_directory_grade_badge(?string $grade, ?string $sourceState): string
+{
+    $state = strtolower(trim((string)$sourceState));
+    if (in_array($state, ['catalog', 'catalog_only'], true)) {
+        return chip('Not analyzed', 'muted');
+    }
+    return grade_badge($grade);
+}
+
+function app_directory_score_text($scoreCapped, ?string $sourceState): string
+{
+    $state = strtolower(trim((string)$sourceState));
+    if (in_array($state, ['catalog', 'catalog_only'], true)) {
+        return '—';
+    }
+    $score = trim((string)($scoreCapped ?? ''));
+    return $score !== '' ? $score : 'Risk score missing';
+}
+
+function app_directory_hmli_text(array $row): string
+{
+    $state = strtolower(trim((string)($row['source_state'] ?? '')));
+    if (in_array($state, ['catalog', 'catalog_only'], true)) {
+        return 'Not analyzed';
+    }
+    return fmt_hml($row['high'] ?? 0, $row['med'] ?? 0, $row['low'] ?? 0, isset($row['info']) ? (int)$row['info'] : null);
 }
 
 /** Session usability/state -> badge */

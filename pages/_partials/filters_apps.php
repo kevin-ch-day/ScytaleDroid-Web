@@ -1,7 +1,7 @@
 <?php
 // pages/_partials/filters_apps.php
 // Expected variables (extracted by index.php):
-// $baseUrl, $q, $category, $size, $hasActiveFilters
+// $baseUrl, $q, $category, $size, $hasActiveFilters, $includeCatalogOnly
 ?>
 
 <section class="panel" data-panel="filters">
@@ -30,12 +30,17 @@
         <?php endforeach; ?>
       </select>
 
+      <label class="inline-check">
+        <input type="checkbox" name="include_catalog" value="1" <?= !empty($includeCatalogOnly) ? 'checked' : '' ?>>
+        <span>Include catalog-only related packages</span>
+      </label>
+
       <button class="btn btn-primary" type="submit">Apply</button>
       <button class="btn-ghost" type="button" data-action="clear-filters" <?= $hasActiveFilters ? '' : 'disabled' ?>>Clear</button>
     </form>
 
     <p class="inline-hint">
-      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>.
+      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>. Catalog-only rows are inventory records, not finalized static-analysis results.
     </p>
   </div>
 </section>

@@ -481,6 +481,14 @@
   width: fit-content;
 }
 
+.table-group-row td {
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel) 90%);
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
 .pager {
   display: flex;
   align-items: center;
