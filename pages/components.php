@@ -49,7 +49,7 @@ require_once __DIR__ . '/../lib/header.php';
     <div class="panel-header">
       <div>
         <h1 class="panel-title">Component Exposure</h1>
-        <p class="panel-subtitle">Fleet-level view of exported providers and guard weaknesses from the latest usable static surfaces.</p>
+        <p class="panel-subtitle">Provider-first fleet view of exported providers and guard weaknesses from the latest usable static surfaces. Activities, services, and receivers are not first-class here yet.</p>
       </div>
       <div class="panel-actions">
         <button type="button" class="panel-toggle" data-action="toggle-panel" aria-expanded="true">Collapse</button>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../lib/header.php';
     <div class="panel-header">
       <div>
         <h2 class="panel-title">Latest Component Rows</h2>
-        <p class="panel-subtitle"><?= e((string)$total) ?> row(s) matched the current filters.</p>
+        <p class="panel-subtitle"><?= e((string)$total) ?> provider row(s) matched the current filters.</p>
       </div>
     </div>
     <div class="panel-body">

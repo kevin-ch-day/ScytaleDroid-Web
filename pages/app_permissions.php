@@ -14,6 +14,7 @@ $preferredSession = $context['preferred_session'];
 $preferredSessionRow = $context['preferred_session_row'];
 $newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
+$runHealthUrl = url('pages/run_health.php');
 
 $rows = [];
 $summary = null;
@@ -94,9 +95,9 @@ require_once __DIR__ . '/../lib/header.php';
       <div class="panel-body">
         <?php if (empty($rows)): ?>
           <?php if (!$activeSessionUsable && $preferredSession): ?>
-            <p class="muted">No permission rows were found because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_permissions.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>.</p>
+            <p class="muted">No permission rows were found because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_permissions.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> if you need to confirm why this session is incomplete.</p>
           <?php else: ?>
-            <p class="muted">No permission-matrix rows were found for this package/session.</p>
+            <p class="muted">No permission-matrix rows were found for this package/session. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether rows are missing or the selected session is partial.</p>
           <?php endif; ?>
         <?php else: ?>
           <div class="table-responsive">

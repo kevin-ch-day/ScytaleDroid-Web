@@ -82,7 +82,7 @@ require_once __DIR__ . '/../lib/header.php';
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Component Summary</h2>
-          <p class="panel-subtitle">Provider exposure counts for the selected static session.</p>
+          <p class="panel-subtitle">Provider-first exposure counts for the selected static session. Activities, services, and receivers are not first-class on this page yet.</p>
         </div>
       </div>
       <div class="panel-body">
@@ -101,7 +101,7 @@ require_once __DIR__ . '/../lib/header.php';
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Providers</h2>
-          <p class="panel-subtitle">Exported state, authorities, and effective guard posture for persisted providers.</p>
+          <p class="panel-subtitle">Exported state, authorities, and effective guard posture for persisted providers in the selected session.</p>
         </div>
       </div>
       <div class="panel-body">

@@ -64,6 +64,7 @@ $selectedHighEntropy = (int)($reportSummaryRow['high_entropy'] ?? ($stringsSumma
 $sessionUsability = strtolower((string)($activeSessionRow['session_usability'] ?? 'unknown'));
 $sessionUsabilitySummary = session_usability_summary_text($sessionUsability);
 $sessionUsabilityHint = session_usability_hint($sessionUsability);
+$runHealthUrl = url('pages/run_health.php');
 $scoreMeta = score_display_meta(
     is_string($selectedGrade) ? $selectedGrade : null,
     $selectedScore,
@@ -209,6 +210,29 @@ foreach ($topFindings as $row) {
 }
 $topRiskPatterns = array_slice($topRiskPatterns, 0, 5);
 
+$scoreDrivers = [];
+if (!empty($scoreMeta['risk_band'])) {
+    $scoreDrivers[] = 'Normalized static score ' . (string)$scoreMeta['normalized_score_text']
+        . ' maps to the ' . (string)$scoreMeta['risk_band'] . ' analyst band.';
+}
+if ($selectedHigh > 0 || $selectedMed > 0) {
+    $scoreDrivers[] = 'Severity totals are ' . fmt_hml($selectedHigh, $selectedMed, $selectedLow, $selectedInfo)
+        . ', so repeated high and medium findings are part of the posture.';
+}
+if ($componentSummary['weak_provider_guards'] > 0) {
+    $scoreDrivers[] = $componentSummary['weak_provider_guards']
+        . ' exported provider surfaces are missing strong guards in this selected session.';
+}
+if ($selectedDangerous > 0) {
+    $scoreDrivers[] = $selectedDangerous
+        . ' dangerous permissions are requested in the selected session.';
+}
+if ($selectedHighEntropy > 0) {
+    $scoreDrivers[] = $selectedHighEntropy
+        . ' persisted high-entropy string indicators contribute to manual review pressure.';
+}
+$scoreDrivers = array_slice($scoreDrivers, 0, 4);
+
 $PAGE_TITLE = $packageName ? ('App Report: ' . $packageName) : 'App Report';
 require_once __DIR__ . '/../lib/header.php';
 ?>
@@ -274,6 +298,19 @@ require_once __DIR__ . '/../lib/header.php';
             <?= chip('Dynamic match: package-level', 'medium') ?>
           <?php endif; ?>
         </div>
+        <div class="card compact-card top-gap">
+          <div class="app-primary">Why this score</div>
+          <p class="table-subline">This page shows the normalized analyst-facing static score. Raw/internal scoring stays on diagnostics surfaces only.</p>
+          <?php if (empty($scoreDrivers)): ?>
+            <p class="muted">No clear score drivers were derived for this session. Review <a href="<?= e($runHealthUrl) ?>">Run Health</a> if the selected session looks incomplete.</p>
+          <?php else: ?>
+            <ul class="detail-list">
+              <?php foreach ($scoreDrivers as $driver): ?>
+                <li><?= e($driver) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
   </section>
@@ -286,7 +323,7 @@ require_once __DIR__ . '/../lib/header.php';
           <p class="panel-subtitle">Quick trust view for the selected session. Full diagnostics live on Run Health.</p>
         </div>
         <div class="panel-actions">
-          <a class="btn-ghost" href="<?= e(url('pages/run_health.php')) ?>">Open Run Health</a>
+          <a class="btn-ghost" href="<?= e($runHealthUrl) ?>">Open Run Health</a>
         </div>
       </div>
       <div class="panel-body">
@@ -321,7 +358,12 @@ require_once __DIR__ . '/../lib/header.php';
             Selected session <?= e((string)$activeSession) ?> is not finalized for app-report use.
             Findings, permissions, or strings are incomplete.
             <a href="<?= e(url('pages/app_report.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode((string)$preferredSession)) ?>">Switch to latest completed session</a>
-            or review the fleet status in <a href="<?= e(url('pages/run_health.php')) ?>">Run Health</a>.
+            or review the fleet status in <a href="<?= e($runHealthUrl) ?>">Run Health</a>.
+          </div>
+        <?php elseif ($sessionHealth['findings_total'] === 0 || $sessionHealth['permission_rows'] === 0 || $sessionHealth['string_rows'] === 0): ?>
+          <div class="alert alert-warning top-gap">
+            This summary is missing one or more expected data surfaces for the selected session.
+            Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether the session is partial, missing rows, or still reconciling.
           </div>
         <?php endif; ?>
       </div>
@@ -405,7 +447,7 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <?php if ($findingSummary === null): ?>
-          <p class="muted">No findings summary is available for this session.</p>
+          <p class="muted">No findings summary is available for this session. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether the selected session is incomplete or missing finalized rows.</p>
         <?php else: ?>
           <div class="chip-row">
             <?= chip('High ' . (string)($findingSummary['high'] ?? 0), 'high') ?>
@@ -452,6 +494,8 @@ require_once __DIR__ . '/../lib/header.php';
             <?php if (!$activeSessionUsable && !empty($preferredSession)): ?>
               Selected session is not finalized yet.
               <a href="<?= e(url('pages/app_report.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode((string)$preferredSession)) ?>">Switch to latest completed</a>.
+            <?php else: ?>
+              Review <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether permission rows are missing or this session is partial.
             <?php endif; ?>
           </p>
         <?php else: ?>
@@ -537,6 +581,8 @@ require_once __DIR__ . '/../lib/header.php';
             <?php if (!$activeSessionUsable && !empty($preferredSession)): ?>
               Selected session is not finalized yet.
               <a href="<?= e(url('pages/app_report.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode((string)$preferredSession)) ?>">Switch to latest completed</a>.
+            <?php else: ?>
+              Review <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether string rows are missing or this session is partial.
             <?php endif; ?>
           </p>
         <?php else: ?>
@@ -559,7 +605,7 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <?php if (empty($stringHighlights)): ?>
-          <p class="muted">No string samples were found for this session.</p>
+          <p class="muted">No string samples were found for this session. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether selected rows are missing or this session is partial.</p>
         <?php else: ?>
           <div class="detail-stack compact-stack">
             <?php foreach ($stringHighlights as $row): ?>

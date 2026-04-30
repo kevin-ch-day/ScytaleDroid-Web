@@ -634,7 +634,7 @@ JOIN static_fileproviders fp
  AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
 SQL;
 
-const SQL_STATIC_SESSION_HEALTH = <<<SQL
+const SQL_STATIC_SESSION_HEALTH_BASE = <<<SQL
 SELECT
   session_stamp,
   created_at,
@@ -651,7 +651,6 @@ SELECT
   session_usability,
   is_usable_complete
 FROM v_web_static_session_health
-ORDER BY created_at DESC
 SQL;
 
 const SQL_STATIC_SESSION_QUALITY = <<<SQL

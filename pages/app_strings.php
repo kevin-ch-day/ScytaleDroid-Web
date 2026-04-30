@@ -14,6 +14,7 @@ $preferredSession = $context['preferred_session'];
 $preferredSessionRow = $context['preferred_session_row'];
 $newerIncompleteSessionRow = $context['newer_incomplete_session_row'];
 $errorMsg = $context['error'];
+$runHealthUrl = url('pages/run_health.php');
 
 $summary = null;
 $samples = [];
@@ -61,9 +62,9 @@ require_once __DIR__ . '/../lib/header.php';
       <div class="panel-body">
         <?php if ($summary === null): ?>
           <?php if (!$activeSessionUsable && $preferredSession): ?>
-            <p class="muted">No string summary is available because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_strings.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>.</p>
+            <p class="muted">No string summary is available because the selected session is not finalized. Latest usable completed session: <a href="<?= e(url('pages/app_strings.php') . '?pkg=' . urlencode($packageName) . '&session=' . urlencode($preferredSession)) ?>"><?= e($preferredSession) ?></a>. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> if you need to confirm why this session is incomplete.</p>
           <?php else: ?>
-            <p class="muted">No strings summary is available for this package/session.</p>
+            <p class="muted">No strings summary is available for this package/session. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether rows are missing or the selected session is partial.</p>
           <?php endif; ?>
         <?php else: ?>
           <div class="metrics-grid">
@@ -89,7 +90,7 @@ require_once __DIR__ . '/../lib/header.php';
       </div>
       <div class="panel-body">
         <?php if (empty($samples)): ?>
-          <p class="muted">No string samples were found for this package/session.</p>
+          <p class="muted">No string samples were found for this package/session. Use <a href="<?= e($runHealthUrl) ?>">Run Health</a> to confirm whether selected rows are missing or this session is partial.</p>
         <?php else: ?>
           <div class="table-responsive">
             <table class="table table-striped table-hover">
