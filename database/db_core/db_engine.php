@@ -6,12 +6,29 @@ if (file_exists($configPath)) {
 
 function db_env(string $key): ?string
 {
-    $value = getenv($key);
-    if ($value === false) {
-        return null;
+    $fromEnv = getenv($key);
+    if (is_string($fromEnv) && $fromEnv !== '') {
+        return $fromEnv;
     }
 
-    return (string) $value;
+    /**
+     * Apache SetEnv / some reverse proxies populate $_SERVER while php-fpm clears process
+     * environment (clear_env=yes). getenv() then misses values that ARE available here.
+     */
+    if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+        return $_SERVER[$key];
+    }
+
+    $redirectKey = 'REDIRECT_' . $key;
+    if (
+        isset($_SERVER[$redirectKey])
+        && is_string($_SERVER[$redirectKey])
+        && $_SERVER[$redirectKey] !== ''
+    ) {
+        return $_SERVER[$redirectKey];
+    }
+
+    return null;
 }
 
 /**
@@ -42,7 +59,10 @@ function db_config_value(string $constName, string $envKey): string
 
     if (!defined($constName)) {
         throw new RuntimeException(
-            "Database setting {$constName} missing. Set {$envKey} or provide local database/db_core/db_config.php."
+            "Database setting {$constName} missing. Set environment variable {$envKey}, "
+            . 'copy database/db_core/db_config.example.php to database/db_core/db_config.php '
+            . 'with your credentials, OR add env[' . $envKey . '] in the php-fpm pool (SetEnv '
+            . 'alone often does not reach PHP-FPM workers).'
         );
     }
 
@@ -80,7 +100,11 @@ function db(): PDO
     $pass = db_env_first(['SCYTALEDROID_DB_PASS', 'SCYTALEDROID_DB_PASSWD']);
     if ($pass === null) {
         if (!defined('DB_PASS')) {
-            throw new RuntimeException('Database constant DB_PASS missing from configuration file.');
+            throw new RuntimeException(
+                'Database password missing: set SCYTALEDROID_DB_PASS in the environment, '
+                . 'php-fpm pool env[], or DB_PASS in database/db_core/db_config.php '
+                . '(copied from database/db_core/db_config.example.php).'
+            );
         }
         $pass = (string) constant('DB_PASS');
     }
@@ -92,7 +116,15 @@ function db(): PDO
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
     } catch (PDOException $e) {
-        throw new RuntimeException('Failed to connect to the database. Verify credentials and network access.', 0, $e);
+        throw new RuntimeException(
+            'Failed to connect to the database: '
+            . $e->getMessage()
+            . ' (Tip: TCP to localhost on Linux often prefers host 127.0.0.1 or SCYTALEDROID_DB_SOCKET; '
+            . 'ensure php-pdo_mysql is installed; with SELinux, httpd/php-fpm may need httpd_can_network_connect_db '
+            . 'for remote DB TCP.)',
+            (int) $e->getCode(),
+            $e
+        );
     }
 
     return $pdo;

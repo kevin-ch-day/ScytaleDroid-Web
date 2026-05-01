@@ -1,9 +1,10 @@
 <?php
+require_once __DIR__ . '/../lib/guards.php';
 require_once __DIR__ . '/../lib/render.php';
 require_once __DIR__ . '/../database/db_lib/db_func.php';
 
 $errorMsg = null;
-$selectedSession = trim((string)($_GET['session'] ?? ''));
+$selectedSession = guard_session($_GET['session'] ?? null);
 $overview = [];
 $sourceMeta = [];
 $sessionOptions = [];
@@ -15,27 +16,27 @@ $sensitiveCombos = [];
 
 try {
     $sessionOptions = permission_intel_session_options();
-    $overview = permission_intel_overview_for_session($selectedSession !== '' ? $selectedSession : null);
-    $sourceMeta = permission_intel_source_meta_for_session($selectedSession !== '' ? $selectedSession : null);
-    $topDangerous = permission_intel_top_dangerous_for_session($selectedSession !== '' ? $selectedSession : null, 15);
-    $sourceBreakdown = permission_intel_source_breakdown_for_session($selectedSession !== '' ? $selectedSession : null, 10);
-    $customBreakdown = permission_intel_custom_breakdown_for_session($selectedSession !== '' ? $selectedSession : null, 10);
-    $protectionBreakdown = permission_intel_protection_breakdown_for_session($selectedSession !== '' ? $selectedSession : null, 10);
-    $sensitiveCombos = permission_intel_sensitive_combos_for_session($selectedSession !== '' ? $selectedSession : null, 10);
+    $overview = permission_intel_overview_for_session($selectedSession);
+    $sourceMeta = permission_intel_source_meta_for_session($selectedSession);
+    $topDangerous = permission_intel_top_dangerous_for_session($selectedSession, 15);
+    $sourceBreakdown = permission_intel_source_breakdown_for_session($selectedSession, 10);
+    $customBreakdown = permission_intel_custom_breakdown_for_session($selectedSession, 10);
+    $protectionBreakdown = permission_intel_protection_breakdown_for_session($selectedSession, 10);
+    $sensitiveCombos = permission_intel_sensitive_combos_for_session($selectedSession, 10);
 } catch (Throwable $e) {
     $errorMsg = 'DB error: ' . $e->getMessage();
     error_log('[ScytaleDroid-Web] permission intelligence failed: ' . $e);
 }
 
-$surfaceMode = $selectedSession !== '' ? 'session' : 'preferred';
+$surfaceMode = $selectedSession !== null ? 'session' : 'preferred';
 $surfaceLabel = $surfaceMode === 'session'
-    ? $selectedSession
-    : 'Current preferred usable app sessions';
+    ? (string) $selectedSession
+    : 'Current preferred sessions (completed, permission rows)';
 $sessionCount = (int)($overview['session_count'] ?? 0);
 $latestCreatedAt = trim((string)($sourceMeta['latest_created_at'] ?? ''));
 $latestSessionStamp = trim((string)($sourceMeta['latest_session_stamp'] ?? $sourceMeta['session_stamp'] ?? ''));
 $sourceStatus = trim((string)($sourceMeta['run_status'] ?? 'COMPLETED'));
-$sourceUsability = trim((string)($sourceMeta['session_usability'] ?? ($surfaceMode === 'session' ? 'usable_complete' : 'preferred_usable_complete')));
+$sourceUsability = trim((string)($sourceMeta['session_usability'] ?? ($surfaceMode === 'session' ? 'usable_complete' : 'preferred_completed_surface')));
 
 $PAGE_TITLE = 'Permission Intelligence';
 require_once __DIR__ . '/../lib/header.php';
@@ -57,7 +58,7 @@ require_once __DIR__ . '/../lib/header.php';
           <label class="filter-field">
             <span class="filter-label">Session</span>
             <select name="session">
-              <option value="">Current preferred usable app sessions</option>
+              <option value="">Current preferred sessions (completed, permission rows)</option>
               <?php foreach ($sessionOptions as $row): ?>
                 <?php $sessionValue = (string)($row['session_stamp'] ?? ''); ?>
                 <option value="<?= e($sessionValue) ?>" <?= $selectedSession === $sessionValue ? 'selected' : '' ?>>
@@ -68,7 +69,7 @@ require_once __DIR__ . '/../lib/header.php';
           </label>
           <div class="filter-actions">
             <button type="submit" class="btn btn-primary">Apply</button>
-            <a class="btn btn-secondary" href="permissions.php">Clear</a>
+            <a class="btn btn-secondary" href="<?= e(url('pages/permissions.php')) ?>">Clear</a>
           </div>
         </form>
 
@@ -79,7 +80,7 @@ require_once __DIR__ . '/../lib/header.php';
             <div class="muted">
               <?= $surfaceMode === 'session'
                 ? 'Single explicit static session from v_web_app_permissions.'
-                : 'One preferred usable completed static session per app from v_web_permission_intel_current.' ?>
+                : 'One preferred completed static session per app from v_web_permission_intel_current (usable_complete or partial_rows with permission matrix).' ?>
             </div>
           </article>
           <article class="card compact-card">
@@ -94,10 +95,10 @@ require_once __DIR__ . '/../lib/header.php';
           <article class="card compact-card">
             <div class="metric-label">Status</div>
             <div class="app-primary">
-              <?= e($surfaceMode === 'session' ? $sourceStatus : 'COMPLETED / preferred usable') ?>
+              <?= e($surfaceMode === 'session' ? $sourceStatus : 'COMPLETED / preferred sessions') ?>
             </div>
             <div class="muted">
-              <?= e($sourceUsability !== '' ? $sourceUsability : 'usable_complete') ?>
+              <?= e($sourceUsability !== '' ? $sourceUsability : 'mixed usability') ?>
               <?php if ($latestCreatedAt !== ''): ?>
                 · last finalized <?= e($latestCreatedAt) ?>
               <?php endif; ?>
@@ -119,7 +120,7 @@ require_once __DIR__ . '/../lib/header.php';
             <div class="muted">
               <?= $surfaceMode === 'session'
                 ? 'Single selected static session; hidden QA/smoke/debug sessions not offered by default.'
-                : 'Catalog-only rows excluded; hidden QA/smoke/debug sessions excluded; one usable completed session per app.' ?>
+                : 'Catalog-only rows excluded; hidden QA/smoke/debug sessions excluded; one preferred completed session per app (permission rows present).' ?>
             </div>
           </article>
         </div>

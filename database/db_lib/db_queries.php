@@ -112,16 +112,22 @@ SELECT
   latest_strings.high_entropy
 FROM v_web_app_directory dir
 LEFT JOIN vw_static_finding_surfaces_latest findings
-  ON findings.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND findings.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(findings.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(findings.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 LEFT JOIN vw_static_risk_surfaces_latest risk
-  ON risk.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND risk.permission_audit_session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(risk.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(risk.permission_audit_session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 LEFT JOIN static_findings_summary summary
   ON summary.id = findings.summary_row_id
 LEFT JOIN static_string_summary latest_strings
-  ON latest_strings.package_name COLLATE utf8mb4_unicode_ci = dir.package_name COLLATE utf8mb4_unicode_ci
- AND latest_strings.session_stamp COLLATE utf8mb4_unicode_ci = dir.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(latest_strings.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(latest_strings.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(dir.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE dir.package_name = :pkg_lookup
 SQL;
 
@@ -172,6 +178,9 @@ SELECT
   SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS med,
   SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low,
   SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'info' THEN 1 ELSE 0 END) AS info,
+  MAX(sar.findings_runtime_total) AS findings_runtime_total,
+  MAX(sar.findings_capped_total) AS findings_capped_total,
+  MAX(sar.findings_capped_by_detector_json) AS findings_capped_by_detector_json,
   sfs.details,
   sar.created_at
 FROM static_analysis_runs sar
@@ -189,6 +198,7 @@ SQL;
 const SQL_APP_FINDINGS_LIST = <<<SQL
 SELECT
   f.severity,
+  COALESCE(NULLIF(TRIM(f.severity_raw), ''), f.severity) AS severity_raw,
   f.title,
   f.evidence,
   f.fix,
@@ -352,6 +362,7 @@ SELECT
   latest.session_stamp,
   latest.version_name,
   latest.severity,
+  latest.severity_raw,
   latest.category,
   latest.detector,
   latest.masvs_area,
@@ -508,7 +519,9 @@ const SQL_PERMISSION_INTEL_SESSION_OPTIONS = <<<SQL
 SELECT DISTINCT session_stamp
 FROM v_web_app_sessions
 WHERE session_hidden_by_default = 0
-  AND session_usability = 'usable_complete'
+  AND UPPER(COALESCE(run_status, '')) = 'COMPLETED'
+  AND session_usability IN ('usable_complete', 'partial_rows')
+  AND COALESCE(permission_rows, 0) > 0
   AND COALESCE(session_stamp, '') <> ''
 ORDER BY session_stamp DESC
 SQL;
@@ -602,20 +615,25 @@ SELECT
   fp.created_at
 FROM vw_static_finding_surfaces_latest latest
 LEFT JOIN apps a
-  ON a.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
+  ON CONVERT(a.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
 LEFT JOIN android_app_categories cat
   ON cat.category_id = a.category_id
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(fp.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(fp.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_COMPONENT_EXPOSURE_COUNT = <<<SQL
 SELECT COUNT(*) AS c
 FROM vw_static_finding_surfaces_latest latest
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(fp.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(fp.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_COMPONENT_EXPOSURE_ORDER = <<<SQL
@@ -630,8 +648,10 @@ SELECT
   COUNT(DISTINCT latest.package_name) AS affected_apps
 FROM vw_static_finding_surfaces_latest latest
 JOIN static_fileproviders fp
-  ON fp.package_name COLLATE utf8mb4_unicode_ci = latest.package_name COLLATE utf8mb4_unicode_ci
- AND fp.session_stamp COLLATE utf8mb4_unicode_ci = latest.session_stamp COLLATE utf8mb4_unicode_ci
+  ON CONVERT(fp.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
+ AND CONVERT(fp.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
+     CONVERT(latest.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 SQL;
 
 const SQL_STATIC_SESSION_HEALTH_BASE = <<<SQL
@@ -842,8 +862,10 @@ SELECT
   m.created_at_utc
 FROM analysis_cohort_runs acr
 JOIN analysis_ml_app_phase_model_metrics m
-  ON m.cohort_id COLLATE utf8mb4_general_ci = acr.cohort_id COLLATE utf8mb4_general_ci
- AND m.package_name COLLATE utf8mb4_general_ci = acr.package_name COLLATE utf8mb4_general_ci
+  ON CONVERT(m.cohort_id USING utf8mb4) COLLATE utf8mb4_general_ci =
+     CONVERT(acr.cohort_id USING utf8mb4) COLLATE utf8mb4_general_ci
+ AND CONVERT(m.package_name USING utf8mb4) COLLATE utf8mb4_general_ci =
+     CONVERT(acr.package_name USING utf8mb4) COLLATE utf8mb4_general_ci
 WHERE acr.dynamic_run_id = :model_run_id
 ORDER BY m.created_at_utc DESC, m.phase ASC, m.model_key ASC
 SQL;
@@ -860,8 +882,10 @@ SELECT
   rr.created_at_utc
 FROM analysis_cohort_runs acr
 JOIN analysis_risk_regime_summary rr
-  ON rr.cohort_id COLLATE utf8mb4_general_ci = acr.cohort_id COLLATE utf8mb4_general_ci
- AND rr.package_name COLLATE utf8mb4_general_ci = acr.package_name COLLATE utf8mb4_general_ci
+  ON CONVERT(rr.cohort_id USING utf8mb4) COLLATE utf8mb4_general_ci =
+     CONVERT(acr.cohort_id USING utf8mb4) COLLATE utf8mb4_general_ci
+ AND CONVERT(rr.package_name USING utf8mb4) COLLATE utf8mb4_general_ci =
+     CONVERT(acr.package_name USING utf8mb4) COLLATE utf8mb4_general_ci
 WHERE acr.dynamic_run_id = :regime_run_id
 ORDER BY rr.created_at_utc DESC, rr.cohort_id ASC
 SQL;

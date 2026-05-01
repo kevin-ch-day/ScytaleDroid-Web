@@ -95,11 +95,16 @@ require_once __DIR__ . '/../lib/header.php';
               <?php
               $severity = strtolower((string)($row['severity'] ?? 'info'));
               $tone = in_array($severity, ['critical', 'high', 'medium', 'low', 'info'], true) ? $severity : 'muted';
+              $severityRaw = strtolower((string)($row['severity_raw'] ?? ''));
+              $showRawSeverity = $severityRaw !== '' && $severityRaw !== $severity;
               ?>
               <article class="card">
                 <div class="card-header">
                   <div class="chip-row">
                     <?= chip(strtoupper((string)($row['severity'] ?? 'INFO')), $tone) ?>
+                    <?php if ($showRawSeverity): ?>
+                      <?= chip('Raw: ' . strtoupper((string)($row['severity_raw'] ?? '')), 'muted') ?>
+                    <?php endif; ?>
                     <span><?= e((string)($row['title'] ?? 'Untitled finding')) ?></span>
                   </div>
                 </div>
