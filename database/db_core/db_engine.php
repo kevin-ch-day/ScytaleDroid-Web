@@ -101,7 +101,7 @@ function db(): PDO
     if ($pass === null) {
         if (!defined('DB_PASS')) {
             throw new RuntimeException(
-                'Database password missing: set SCYTALEDROID_DB_PASS in the environment, '
+                'Database password missing: set SCYTALEDROID_DB_PASS or SCYTALEDROID_DB_PASSWD in the environment, '
                 . 'php-fpm pool env[], or DB_PASS in database/db_core/db_config.php '
                 . '(copied from database/db_core/db_config.example.php).'
             );

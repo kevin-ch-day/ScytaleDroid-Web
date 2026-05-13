@@ -24,8 +24,10 @@ try {
     $diag = app_diagnostics();
     echo "DB OK\n";
     echo "Version: {$diag['version']}\n";
-    echo "runs: {$diag['runs']}\n";
+    echo "legacy_runs (pre-canonical runs table): {$diag['legacy_runs']}\n";
     echo "static_runs: {$diag['static_runs']}\n";
+    echo "static_analysis_findings_rows: {$diag['static_analysis_findings_rows']}\n";
+    echo "v_web_app_findings_rows: {$diag['v_web_app_findings_rows']}\n";
     echo "audit_snapshots: {$diag['audit_snapshots']}\n";
     echo "audit_packages: {$diag['audit_packages']}\n";
     echo "static_packages: {$diag['static_packages']}\n";

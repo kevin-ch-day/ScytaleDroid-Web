@@ -180,6 +180,9 @@ function app_report_summary(string $packageName, string $sessionStamp): ?array
 }
 
 /**
+ * Lightweight DB counters for smoke/diag. ``runs`` / ``legacy_runs`` = legacy ledger (often empty).
+ * ``static_analysis_findings_rows`` = canonical persistence; ``v_web_app_findings_rows`` = Web read-model.
+ *
  * @return array<string,mixed>
  */
 function app_diagnostics(): array
@@ -187,11 +190,16 @@ function app_diagnostics(): array
     $versionRow = db_one(SQL_DIAG_DB_VERSION) ?? [];
     $countRow = db_one(SQL_DIAG_COUNTS) ?? [];
 
+    $legacyRuns = (int) ($countRow['legacy_runs'] ?? $countRow['runs'] ?? 0);
+
     return [
         'db_ok' => true,
         'version' => $versionRow['version'] ?? '?',
-        'runs' => (int)($countRow['runs'] ?? 0),
+        'legacy_runs' => $legacyRuns,
+        'runs' => $legacyRuns,
         'static_runs' => (int)($countRow['static_runs'] ?? 0),
+        'static_analysis_findings_rows' => (int)($countRow['static_analysis_findings_rows'] ?? 0),
+        'v_web_app_findings_rows' => (int)($countRow['v_web_app_findings_rows'] ?? 0),
         'audit_snapshots' => (int)($countRow['audit_snapshots'] ?? 0),
         'audit_packages' => (int)($countRow['audit_packages'] ?? 0),
         'static_packages' => (int)($countRow['static_packages'] ?? 0),

@@ -208,7 +208,7 @@ require_once __DIR__ . '/../lib/header.php';
             </div>
             <div class="finding-card-body">
               <p class="muted"><?= e((string)($row['category'] ?? 'Uncategorized')) ?> · <?= e((string)($row['masvs_area'] ?? 'Unmapped')) ?></p>
-              <pre class="code-block"><?= e((string)($row['evidence'] ?? 'No evidence payload')) ?></pre>
+              <pre class="code-block"><?= e(finding_evidence_display_text($row['evidence'] ?? null)) ?></pre>
             </div>
           </article>
         <?php endforeach; ?>

@@ -15,3 +15,4 @@ const DB_PORT = 3306;
 const DB_NAME = 'scytaledroid_db_dev';
 const DB_USER = 'scytaledroid_readonly';
 const DB_PASS = 'change-me';
+// Password may instead be set via SCYTALEDROID_DB_PASS or SCYTALEDROID_DB_PASSWD (see db_engine.php).

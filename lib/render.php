@@ -421,10 +421,31 @@ function session_usability_summary_text(?string $state): string
     return (string)$meta['summary'];
 }
 
-/** Human-friendly finding evidence summary. */
-function finding_evidence_excerpt(?string $evidence, int $maxLen = 220): string
+/** Human-friendly finding evidence summary (string, JSON string, or decoded JSON array/object). */
+function finding_evidence_excerpt($evidence, int $maxLen = 220): string
 {
-    $evidence = trim((string)($evidence ?? ''));
+    if ($evidence === null) {
+        return '';
+    }
+    if (is_object($evidence)) {
+        return finding_evidence_excerpt((array) $evidence, $maxLen);
+    }
+    if (is_array($evidence)) {
+        foreach (['detail', 'evidence', 'message', 'summary', 'path', 'value'] as $key) {
+            if (!empty($evidence[$key]) && is_scalar($evidence[$key])) {
+                return finding_evidence_excerpt((string) $evidence[$key], $maxLen);
+            }
+        }
+        $json = json_encode($evidence, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            return '';
+        }
+        $json = trim($json);
+
+        return mb_strimwidth($json, 0, $maxLen, '…');
+    }
+
+    $evidence = trim((string) $evidence);
     if ($evidence === '') {
         return '';
     }
@@ -437,14 +458,36 @@ function finding_evidence_excerpt(?string $evidence, int $maxLen = 220): string
     if (is_array($decoded)) {
         foreach (['detail', 'evidence', 'message', 'summary', 'path', 'value'] as $key) {
             if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
-                $evidence = (string)$decoded[$key];
+                $evidence = (string) $decoded[$key];
                 break;
             }
         }
     }
 
     $evidence = preg_replace('/\s+/u', ' ', $evidence) ?? $evidence;
+
     return mb_strimwidth($evidence, 0, $maxLen, '…');
+}
+
+/** Full evidence block for pre/code display (handles JSON columns returned as arrays). */
+function finding_evidence_display_text($evidence): string
+{
+    if ($evidence === null || $evidence === '') {
+        return 'No evidence payload';
+    }
+    if (is_object($evidence)) {
+        $evidence = (array) $evidence;
+    }
+    if (is_array($evidence)) {
+        $json = json_encode(
+            $evidence,
+            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+
+        return $json !== false ? $json : 'No evidence payload';
+    }
+
+    return trim((string) $evidence);
 }
 
 /** Permission weight badge for internal numeric severity values. */

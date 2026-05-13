@@ -4,20 +4,29 @@ This application is read-only and expects a populated ScytaleDroid schema. Use t
 
 ## Required Tables / Views
 
-Static exposure and app-directory views:
+Canonical static + Web read models (preferred):
+
 - `v_web_app_directory`
+- `v_web_app_sessions`
+- `v_web_app_findings` (resolved finding evidence: inline JSON and/or `static_finding_evidence_payloads`)
 - `vw_static_risk_surfaces_latest`
 - `vw_static_finding_surfaces_latest`
+- `static_analysis_runs`
+- `static_analysis_findings` (base rows; do not read `evidence` directly in PHP — use `v_web_app_findings`)
+- `static_finding_evidence_payloads` (deduped JSON; consumed through `v_web_app_findings`)
 - `permission_audit_snapshots`
 - `android_app_categories`
 - `android_app_profiles`
 - `apps`
 - `app_versions`
-- `static_findings_summary` (compatibility/details bridge)
-- `static_findings` (compatibility/details bridge)
 - `static_permission_matrix`
 - `static_string_summary`
 - `static_string_selected_samples`
+
+Optional / compatibility (may be empty on newer installs):
+
+- `static_findings_summary` (details bridge for app overview / summaries; not a substitute for `v_web_app_findings`)
+- `static_findings` (legacy compatibility table — do not use for new Web features)
 
 Runtime deviation views:
 - `v_web_runtime_run_index`
@@ -72,7 +81,7 @@ You can override any setting at runtime with environment variables before Apache
 | `SCYTALEDROID_DB_SOCKET` | Path to a Unix socket (skips host/port). |
 | `SCYTALEDROID_DB_NAME` | Database/schema name. |
 | `SCYTALEDROID_DB_USER` | Database user. |
-| `SCYTALEDROID_DB_PASS` | Database password. |
+| `SCYTALEDROID_DB_PASS` | Database password (also accepts **`SCYTALEDROID_DB_PASSWD`** — same as Python analyst tooling). |
 | `SCYTALEDROID_DB_CHARSET` | Optional charset (defaults to `utf8mb4`). |
 | `SCYTALEDROID_DB_DSN` | Full PDO DSN, if you need complete manual control. |
 
@@ -91,6 +100,13 @@ SELECT COUNT(*) FROM v_web_app_directory;
 -- Ensure app rows include latest static/audit state
 SELECT package_name, app_label, grade, high, med, low, source_state
 FROM v_web_app_directory
+LIMIT 5;
+
+-- Confirm Web findings read-model returns rows (evidence resolved in SQL)
+SELECT package_name, session_stamp, COUNT(*) AS finding_rows
+FROM v_web_app_findings
+GROUP BY package_name, session_stamp
+ORDER BY session_stamp DESC
 LIMIT 5;
 
 -- Confirm latest explicit finding surfaces exist
@@ -130,3 +146,12 @@ GROUP BY link_state;
 ```
 
 If any query returns zero rows, the UI will show empty states. Populate the data pipeline before rolling out ScytaleDroid-Web.
+
+## Legacy debt and roadmap (Web)
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| **`runs` table** | Diagnostic only | Count exposed as `legacy_runs` in `pages/diag.php` / `app_diagnostics()`. Often zero when only canonical static is populated. |
+| **`static_findings_summary` join** | `SQL_APP_OVERVIEW` | Still joined for `details_json` bridge; prefer a Web view column if the Python repo adds one. |
+| **Dynamic ↔ static handoff** | Research / ops | Use analyst `report_dynamic_static_alignment.py` (Python repo); Web shows `static_link_state` on runtime index only. |
+| **Password env naming** | Resolved in code | `db_engine.php` accepts `SCYTALEDROID_DB_PASS` **or** `SCYTALEDROID_DB_PASSWD`. |

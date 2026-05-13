@@ -99,7 +99,7 @@ SELECT
   COALESCE(findings.canonical_low, 0) AS low,
   COALESCE(findings.canonical_info, 0) AS info,
   dir.source_state,
-  summary.details AS details_json,
+  COALESCE(summary.details, latest_strings.findings_details) AS details_json,
   latest_strings.endpoints,
   latest_strings.http_cleartext,
   latest_strings.api_keys,
@@ -123,7 +123,7 @@ LEFT JOIN vw_static_risk_surfaces_latest risk
      CONVERT(dir.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci
 LEFT JOIN static_findings_summary summary
   ON summary.id = findings.summary_row_id
-LEFT JOIN static_string_summary latest_strings
+LEFT JOIN v_web_app_string_summary latest_strings
   ON CONVERT(latest_strings.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci =
      CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_unicode_ci
  AND CONVERT(latest_strings.session_stamp USING utf8mb4) COLLATE utf8mb4_unicode_ci =
@@ -171,56 +171,47 @@ SQL;
 
 const SQL_APP_FINDINGS_SUMMARY = <<<SQL
 SELECT
-  a.package_name,
-  sar.session_stamp,
-  sar.scope_label,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS med,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low,
-  SUM(CASE WHEN LOWER(COALESCE(f.severity, '')) = 'info' THEN 1 ELSE 0 END) AS info,
+  latest.package_name,
+  latest.session_stamp,
+  MAX(sar.scope_label) AS scope_label,
+  SUM(CASE WHEN LOWER(COALESCE(latest.severity, '')) = 'high' THEN 1 ELSE 0 END) AS high,
+  SUM(CASE WHEN LOWER(COALESCE(latest.severity, '')) = 'medium' THEN 1 ELSE 0 END) AS med,
+  SUM(CASE WHEN LOWER(COALESCE(latest.severity, '')) = 'low' THEN 1 ELSE 0 END) AS low,
+  SUM(CASE WHEN LOWER(COALESCE(latest.severity, '')) = 'info' THEN 1 ELSE 0 END) AS info,
   MAX(sar.findings_runtime_total) AS findings_runtime_total,
   MAX(sar.findings_capped_total) AS findings_capped_total,
   MAX(sar.findings_capped_by_detector_json) AS findings_capped_by_detector_json,
-  sfs.details,
-  sar.created_at
-FROM static_analysis_runs sar
-JOIN app_versions av ON av.id = sar.app_version_id
-JOIN apps a ON a.id = av.app_id
-LEFT JOIN static_analysis_findings f ON f.run_id = sar.id
-LEFT JOIN static_findings_summary sfs
-  ON sfs.static_run_id = sar.id
-WHERE a.package_name = :pkg_summary
-  AND sar.session_stamp = :session_summary
-GROUP BY a.package_name, sar.session_stamp, sar.scope_label, sfs.details, sar.created_at
+  MAX(sfs.details) AS details,
+  MAX(sar.created_at) AS created_at
+FROM v_web_app_findings latest
+INNER JOIN static_analysis_runs sar ON sar.id = latest.static_run_id
+LEFT JOIN static_findings_summary sfs ON sfs.static_run_id = sar.id
+WHERE latest.package_name = :pkg_summary
+  AND latest.session_stamp = :session_summary
+GROUP BY latest.package_name, latest.session_stamp
 LIMIT 1
 SQL;
 
 const SQL_APP_FINDINGS_LIST = <<<SQL
 SELECT
-  f.severity,
-  COALESCE(NULLIF(TRIM(f.severity_raw), ''), f.severity) AS severity_raw,
-  f.title,
-  f.evidence,
-  f.fix,
-  f.created_at
-FROM static_analysis_findings f
-JOIN static_analysis_runs sar
-  ON sar.id = f.run_id
-JOIN app_versions av
-  ON av.id = sar.app_version_id
-JOIN apps a
-  ON a.id = av.app_id
-WHERE a.package_name = :pkg_findings
-  AND sar.session_stamp = :session_findings
+  latest.severity,
+  latest.severity_raw,
+  latest.title,
+  latest.evidence,
+  latest.fix,
+  latest.created_at
+FROM v_web_app_findings latest
+WHERE latest.package_name = :pkg_findings
+  AND latest.session_stamp = :session_findings
 ORDER BY
-  CASE LOWER(f.severity)
+  CASE LOWER(COALESCE(latest.severity, ''))
     WHEN 'critical' THEN 1
     WHEN 'high' THEN 2
     WHEN 'medium' THEN 3
     WHEN 'low' THEN 4
     ELSE 5
   END,
-  f.title ASC
+  latest.title ASC
 SQL;
 
 const SQL_APP_STRINGS_SUMMARY = <<<SQL
@@ -689,8 +680,10 @@ SQL;
 
 const SQL_DIAG_COUNTS = <<<SQL
 SELECT
-  (SELECT COUNT(*) FROM runs) AS runs,
+  (SELECT COUNT(*) FROM runs) AS legacy_runs,
   (SELECT COUNT(*) FROM static_analysis_runs) AS static_runs,
+  (SELECT COUNT(*) FROM static_analysis_findings) AS static_analysis_findings_rows,
+  (SELECT COUNT(*) FROM v_web_app_findings) AS v_web_app_findings_rows,
   (SELECT COUNT(*) FROM permission_audit_snapshots) AS audit_snapshots,
   (SELECT COUNT(DISTINCT package_name) FROM vw_static_risk_surfaces_latest) AS audit_packages,
   (SELECT COUNT(DISTINCT package_name) FROM vw_static_finding_surfaces_latest) AS static_packages,

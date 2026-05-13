@@ -97,6 +97,7 @@ require_once __DIR__ . '/../lib/header.php';
               $tone = in_array($severity, ['critical', 'high', 'medium', 'low', 'info'], true) ? $severity : 'muted';
               $severityRaw = strtolower((string)($row['severity_raw'] ?? ''));
               $showRawSeverity = $severityRaw !== '' && $severityRaw !== $severity;
+              $evidenceExcerpt = finding_evidence_excerpt($row['evidence'] ?? null, 320);
               ?>
               <article class="card">
                 <div class="card-header">
@@ -108,8 +109,8 @@ require_once __DIR__ . '/../lib/header.php';
                     <span><?= e((string)($row['title'] ?? 'Untitled finding')) ?></span>
                   </div>
                 </div>
-                <?php if (!empty($row['evidence'])): ?>
-                  <p class="pre-wrap muted"><?= e(finding_evidence_excerpt((string)$row['evidence'], 320)) ?></p>
+                <?php if ($evidenceExcerpt !== ''): ?>
+                  <p class="pre-wrap muted"><?= e($evidenceExcerpt) ?></p>
                 <?php endif; ?>
                 <?php if (!empty($row['fix'])): ?>
                   <p><strong>Fix:</strong> <?= e((string)$row['fix']) ?></p>

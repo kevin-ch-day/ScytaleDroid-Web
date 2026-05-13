@@ -236,7 +236,7 @@ function build_app_report_payload(array $context): array
         }
         $topRiskPatterns[] = [
             'title' => $title,
-            'summary' => finding_evidence_excerpt((string) ($row['evidence'] ?? ''), 140),
+            'summary' => finding_evidence_excerpt($row['evidence'] ?? null, 140),
             'tone' => strtolower((string) ($row['severity'] ?? 'info')),
         ];
         if (count($topRiskPatterns) >= 5) {
