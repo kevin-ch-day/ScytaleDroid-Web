@@ -58,9 +58,25 @@ require_once __DIR__ . '/../lib/header.php';
                         <span class="metric-value"><?= e((string)($overview['catalog_only_apps'] ?? 0)) ?></span>
                     </div>
                     <div class="metric-card">
-                        <span class="metric-label">High Findings</span>
-                        <span class="metric-value bad"><?= e((string)($overview['high_total'] ?? 0)) ?></span>
-                        <p class="muted">Medium <?= e((string)($overview['med_total'] ?? 0)) ?> • Low <?= e((string)($overview['low_total'] ?? 0)) ?></p>
+                        <span class="metric-label">Severity Totals</span>
+                        <div class="severity-mini-grid" aria-label="Fleet severity totals">
+                            <div class="severity-mini-stat">
+                                <span class="severity-mini-key">H</span>
+                                <span class="severity-mini-value bad"><?= e((string)($overview['high_total'] ?? 0)) ?></span>
+                            </div>
+                            <div class="severity-mini-stat">
+                                <span class="severity-mini-key">M</span>
+                                <span class="severity-mini-value warn"><?= e((string)($overview['med_total'] ?? 0)) ?></span>
+                            </div>
+                            <div class="severity-mini-stat">
+                                <span class="severity-mini-key">L</span>
+                                <span class="severity-mini-value info"><?= e((string)($overview['low_total'] ?? 0)) ?></span>
+                            </div>
+                            <div class="severity-mini-stat">
+                                <span class="severity-mini-key">I</span>
+                                <span class="severity-mini-value"><?= e((string)($overview['info_total'] ?? 0)) ?></span>
+                            </div>
+                        </div>
                     </div>
                     <div class="metric-card">
                         <span class="metric-label">Static Sessions</span>
@@ -69,7 +85,17 @@ require_once __DIR__ . '/../lib/header.php';
                     <div class="metric-card">
                         <span class="metric-label">Dynamic Runs</span>
                         <span class="metric-value"><?= e((string)($runtimeOverview['dynamic_runs'] ?? 0)) ?></span>
-                        <p class="muted">Packages <?= e((string)($runtimeOverview['dynamic_packages'] ?? 0)) ?> • Feature rows <?= e((string)($runtimeOverview['feature_rows'] ?? 0)) ?></p>
+                        <p class="muted">Packages <?= e((string)($runtimeOverview['dynamic_packages'] ?? 0)) ?> • Legacy / unknown <?= e((string)($runtimeOverview['legacy_or_unevaluated_runs'] ?? 0)) ?></p>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Quota-valid Runs</span>
+                        <span class="metric-value info"><?= e((string)($runtimeOverview['quota_valid_runs'] ?? 0)) ?></span>
+                        <p class="muted">Supplemental <?= e((string)($runtimeOverview['supplemental_valid_runs'] ?? 0)) ?> • Invalid/skipped <?= e((string)($runtimeOverview['invalid_or_skipped_runs'] ?? 0)) ?></p>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Static Linked / Features Ready</span>
+                        <span class="metric-value"><?= e((string)($runtimeOverview['static_linked_runs'] ?? 0)) ?> / <?= e((string)($runtimeOverview['features_available_runs'] ?? 0)) ?></span>
+                        <p class="muted">Missing link <?= e((string)($runtimeOverview['missing_static_link_runs'] ?? 0)) ?> • Issues <?= e((string)($runtimeOverview['issue_rows'] ?? 0)) ?></p>
                     </div>
                 </div>
             </div>
@@ -88,11 +114,14 @@ require_once __DIR__ . '/../lib/header.php';
                         <?php foreach ($topApps as $row): ?>
                             <?php $pkg = (string)($row['package_name'] ?? ''); ?>
                             <?php $scoreMeta = score_display_meta((string)($row['grade'] ?? null), $row['score_capped'] ?? null, (string)($row['source_state'] ?? '')); ?>
+                            <?php $secondaryLabel = app_secondary_label((string)($row['profile_label'] ?? ''), (string)($row['category'] ?? '')); ?>
                             <article class="card compact-card">
                                 <div class="compact-row">
                                     <div>
                                         <a href="<?= e(url('pages/app_report.php') . '?pkg=' . urlencode($pkg)) ?>"><?= e((string)($row['app_label'] ?? $pkg)) ?></a>
-                                        <div class="table-subline"><?= e((string)($row['category'] ?? 'Uncategorized')) ?></div>
+                                        <?php if ($secondaryLabel !== ''): ?>
+                                            <div class="table-subline"><?= e($secondaryLabel) ?></div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="chip-row">
                                         <?= grade_badge((string)($row['grade'] ?? null)) ?>

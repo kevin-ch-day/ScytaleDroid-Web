@@ -46,9 +46,61 @@ function fleet_recurring_findings(int $limit = 10): array
  */
 function runtime_deviation_overview(): array
 {
-    return web_cache_remember('runtime_deviation_overview_v1', 60, static function (): array {
+    return web_cache_remember('runtime_deviation_overview_v5', 60, static function (): array {
         return db_one(SQL_RUNTIME_OVERVIEW) ?? [];
     });
+}
+
+/**
+ * Fleet-level dynamic service context by observed network volume.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function runtime_top_services(int $limit = 10): array
+{
+    $limit = _positive_limit($limit, 40);
+    return web_cache_remember("runtime_top_services_v1_{$limit}", 60, static function () use ($limit): array {
+        $sql = SQL_RUNTIME_TOP_SERVICES . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * Fleet-level dynamic signal context by observed network volume.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function runtime_top_signals(int $limit = 10): array
+{
+    $limit = _positive_limit($limit, 40);
+    return web_cache_remember("runtime_top_signals_v1_{$limit}", 60, static function () use ($limit): array {
+        $sql = SQL_RUNTIME_TOP_SIGNALS . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * Fleet-level observed domains by network indicator volume.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function runtime_top_domains(int $limit = 10): array
+{
+    $limit = _positive_limit($limit, 40);
+    return web_cache_remember("runtime_top_domains_v1_{$limit}", 60, static function () use ($limit): array {
+        $sql = SQL_RUNTIME_TOP_DOMAINS . " LIMIT $limit";
+        return db_all($sql);
+    });
+}
+
+/**
+ * Lightweight probe for the normalized static/dynamic package summary view.
+ *
+ * @return array<string,mixed>
+ */
+function static_dynamic_summary_probe(): array
+{
+    return db_one(SQL_STATIC_DYNAMIC_SUMMARY_PROBE) ?? [];
 }
 
 /**
@@ -69,13 +121,18 @@ function runtime_deviation_runs_paged(
         'q' => $q,
     ]);
 
-    return db_paged(
-        SQL_RUNTIME_RUNS_BASE,
-        SQL_RUNTIME_RUNS_COUNT,
-        $where,
-        SQL_RUNTIME_RUNS_ORDER,
-        $params,
-        $page,
-        $size
-    );
+    $cacheSeed = json_encode([$where, $params, $page, $size], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where;
+    return web_cache_remember('runtime_runs_paged_v1_' . sha1($cacheSeed), 60, static function () use ($where, $params, $page, $size, $cacheSeed): array {
+        return db_paged(
+            SQL_RUNTIME_RUNS_BASE,
+            SQL_RUNTIME_RUNS_COUNT,
+            $where,
+            SQL_RUNTIME_RUNS_ORDER,
+            $params,
+            $page,
+            $size,
+            60,
+            'runtime_runs_' . sha1($cacheSeed)
+        );
+    });
 }

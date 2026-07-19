@@ -168,6 +168,12 @@
       form.querySelectorAll('input[type="search"], input[type="text"]').forEach((input) => {
         input.value = '';
       });
+      form.querySelectorAll('select').forEach((select) => {
+        select.selectedIndex = 0;
+      });
+      form.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.checked = checkbox.name === 'include_catalog';
+      });
       const sizeSelect = form.querySelector('select[name="size"]');
       if (sizeSelect) {
         sizeSelect.selectedIndex = 0;
@@ -187,43 +193,6 @@
       }
     }
   });
-
-  // Table density toggling
-  const densityBtn = document.querySelector('[data-action="toggle-density"]');
-  const densityIndicator = document.querySelector('[data-density-indicator]');
-  const densityKey = 'scytaledroid-density';
-  const table = document.querySelector('[data-table="apps"]');
-  const densityModes = ['', 'table-compact', 'table-dense'];
-
-  const applyDensity = (mode) => {
-    if (!table) return;
-    table.classList.remove('table-compact', 'table-dense');
-    const normalized = densityModes.includes(mode) ? mode : '';
-    if (normalized) {
-      table.classList.add(normalized);
-    }
-    if (densityIndicator) {
-      let label = 'Standard';
-      if (normalized === 'table-compact') label = 'Compact';
-      else if (normalized === 'table-dense') label = 'Dense';
-      densityIndicator.textContent = `Density: ${label}`;
-    }
-  };
-
-  applyDensity(window.localStorage.getItem(densityKey) || '');
-
-  if (densityBtn && table) {
-    densityBtn.addEventListener('click', () => {
-      const current = table.classList.contains('table-dense')
-        ? 'table-dense'
-        : table.classList.contains('table-compact')
-          ? 'table-compact'
-          : '';
-      const next = densityModes[(densityModes.indexOf(current) + 1) % densityModes.length];
-      window.localStorage.setItem(densityKey, next);
-      applyDensity(next);
-    });
-  }
 
   // Copy to clipboard for package names
   document.querySelectorAll('[data-copy]').forEach((btn) => {

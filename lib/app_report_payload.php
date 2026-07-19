@@ -34,10 +34,12 @@ function build_app_report_payload(array $context): array
     $componentSummaryRow = null;
     $dynamicSummary = [];
     $dynamicRuns = [];
+    $dynamicServiceSummary = [];
+    $dynamicSignalSummary = [];
+    $dynamicDomainContext = [];
     $dbErrorDuringPayload = null;
 
     try {
-        $reportSummaryRow = app_report_summary($packageName, $activeSession);
         $findingSummary = app_findings_summary($packageName, $activeSession);
         $topFindings = app_findings_list($packageName, $activeSession, 8);
         $permissionSummaryRow = app_permission_summary($packageName, $activeSession);
@@ -49,9 +51,22 @@ function build_app_report_payload(array $context): array
         $providerAcl = app_provider_acl($packageName, $activeSession, 12);
         $dynamicSummary = app_dynamic_summary($packageName);
         $dynamicRuns = app_dynamic_runs($packageName, 5);
+        $dynamicServiceSummary = app_dynamic_service_summary($packageName, 5);
+        $dynamicSignalSummary = app_dynamic_signal_summary($packageName, 5);
+        $dynamicDomainContext = app_dynamic_domain_context($packageName, 8);
     } catch (Throwable $e) {
         $dbErrorDuringPayload = 'DB error: ' . $e->getMessage();
         error_log('[ScytaleDroid-Web] app report payload failed: ' . $e);
+    }
+
+    if ($dbErrorDuringPayload === null) {
+        $reportSummaryRow = array_merge(
+            is_array($asr) ? $asr : [],
+            is_array($findingSummary) ? $findingSummary : [],
+            is_array($permissionSummaryRow) ? $permissionSummaryRow : [],
+            is_array($stringsSummary) ? $stringsSummary : [],
+            is_array($componentSummaryRow) ? $componentSummaryRow : []
+        );
     }
 
     $rs = is_array($reportSummaryRow) ? $reportSummaryRow : [];
@@ -60,7 +75,10 @@ function build_app_report_payload(array $context): array
     $csr = is_array($componentSummaryRow) ? $componentSummaryRow : [];
     $psr = is_array($permissionSummaryRow) ? $permissionSummaryRow : [];
 
-    $details = decode_assoc_json(is_array($app) ? ($app['details_json'] ?? null) : null);
+    $details = decode_assoc_json((string)($rs['details'] ?? $rs['details_json'] ?? ''));
+    if ($details === []) {
+        $details = decode_assoc_json(is_array($app) ? ($app['details_json'] ?? null) : null);
+    }
 
     $selectedGrade = $activeSessionUsable
         ? ($rs['grade'] ?? $asr['grade'] ?? ($app['grade'] ?? null))
@@ -282,6 +300,9 @@ function build_app_report_payload(array $context): array
         'componentSummaryRow' => $componentSummaryRow,
         'dynamicSummary' => $dynamicSummary,
         'dynamicRuns' => $dynamicRuns,
+        'dynamicServiceSummary' => $dynamicServiceSummary,
+        'dynamicSignalSummary' => $dynamicSignalSummary,
+        'dynamicDomainContext' => $dynamicDomainContext,
         'details' => $details,
         'selectedGrade' => $selectedGrade,
         'selectedScore' => $selectedScore,

@@ -16,6 +16,14 @@ function fmt_date(?string $ts): string
     return $t ? date('Y-m-d H:i', $t) : $ts;
 }
 
+/** Format timestamp for operator-facing table scans (e.g. 6/3/2026 5:47 pm). */
+function fmt_date_compact(?string $ts): string
+{
+    if (!$ts) return '';
+    $t = strtotime($ts);
+    return $t ? date('n/j/Y g:i a', $t) : $ts;
+}
+
 /** H/M/L (and optional I) compact string */
 function fmt_hml(?int $h, ?int $m, ?int $l, ?int $i = null): string
 {
@@ -25,6 +33,45 @@ function fmt_hml(?int $h, ?int $m, ?int $l, ?int $i = null): string
     $s = "{$h}/{$m}/{$l}";
     if ($i !== null) $s .= '/' . (int)$i;
     return $s;
+}
+
+/** Treat empty/generic labels as presentation-only placeholders. */
+function is_placeholder_label(?string $value): bool
+{
+    $normalized = strtolower(trim((string)($value ?? '')));
+    return in_array($normalized, ['', 'unclassified', 'uncategorized', 'unknown', 'n/a', 'none'], true);
+}
+
+/** Compact list-row subtitle: prefer profile when meaningful, otherwise category. */
+function app_secondary_label(?string $profile, ?string $category): string
+{
+    $profile = trim((string)($profile ?? ''));
+    $category = trim((string)($category ?? ''));
+
+    if (!is_placeholder_label($profile)) {
+        return $profile;
+    }
+    if (!is_placeholder_label($category)) {
+        return $category;
+    }
+    return '';
+}
+
+/** Detail-page subtitle fragments without generic placeholder noise. */
+function app_context_fragments(?string $category, ?string $profile): array
+{
+    $fragments = [];
+    $category = trim((string)($category ?? ''));
+    $profile = trim((string)($profile ?? ''));
+
+    if (!is_placeholder_label($category)) {
+        $fragments[] = $category;
+    }
+    if (!is_placeholder_label($profile) && strcasecmp($profile, $category) !== 0) {
+        $fragments[] = $profile;
+    }
+
+    return $fragments;
 }
 
 /** Grade -> badge class */
@@ -161,6 +208,15 @@ function app_directory_hmli_text(array $row): string
     return fmt_hml($row['high'] ?? 0, $row['med'] ?? 0, $row['low'] ?? 0, isset($row['info']) ? (int)$row['info'] : null);
 }
 
+function app_directory_severity_value(array $row, string $key): string
+{
+    $state = strtolower(trim((string)($row['source_state'] ?? '')));
+    if (in_array($state, ['catalog', 'catalog_only'], true)) {
+        return '—';
+    }
+    return (string)((int)($row[$key] ?? 0));
+}
+
 /** Shared analyst-facing score contract. Raw/internal scores stay diagnostics-only. */
 function score_display_meta(?string $grade, $scoreCapped, ?string $sourceState = null): array
 {
@@ -256,6 +312,268 @@ function risk_band_chip(?string $grade, $scoreCapped, ?string $sourceState = nul
         return chip('Risk band unavailable', 'muted');
     }
     return chip((string)$meta['risk_band'], (string)$meta['risk_band_tone']);
+}
+
+function runtime_feature_state_meta(?string $state): array
+{
+    $normalized = strtolower(trim((string)$state));
+    return match ($normalized) {
+        'features_available' => [
+            'key' => 'features_available',
+            'label' => 'Features ready',
+            'tone' => 'info',
+            'hint' => 'Derived dynamic feature rows are available for this run.',
+        ],
+        'missing_features' => [
+            'key' => 'missing_features',
+            'label' => 'Features missing',
+            'tone' => 'medium',
+            'hint' => 'The run exists, but derived dynamic feature rows are missing.',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'unknown_features',
+            'label' => $normalized !== '' ? ucwords(str_replace('_', ' ', $normalized)) : 'Features unknown',
+            'tone' => 'muted',
+            'hint' => 'Feature availability could not be classified from the current runtime view.',
+        ],
+    };
+}
+
+function runtime_feature_state_chip(?string $state): string
+{
+    $meta = runtime_feature_state_meta($state);
+    return chip((string)$meta['label'], (string)$meta['tone']);
+}
+
+function runtime_feature_state_hint(?string $state): string
+{
+    $meta = runtime_feature_state_meta($state);
+    return (string)$meta['hint'];
+}
+
+function runtime_static_link_state_meta(?string $state): array
+{
+    $normalized = strtolower(trim((string)$state));
+    return match ($normalized) {
+        'static_linked' => [
+            'key' => 'static_linked',
+            'label' => 'Static linked',
+            'tone' => 'info',
+            'hint' => 'This dynamic run is linked to a canonical static run.',
+        ],
+        'missing_static_run_id' => [
+            'key' => 'missing_static_run_id',
+            'label' => 'Missing static link',
+            'tone' => 'high',
+            'hint' => 'No canonical static_run_id is attached, so static-to-dynamic joins are limited.',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'unknown_static_link',
+            'label' => $normalized !== '' ? ucwords(str_replace('_', ' ', $normalized)) : 'Static link unknown',
+            'tone' => 'muted',
+            'hint' => 'Static linkage could not be classified from the current runtime view.',
+        ],
+    };
+}
+
+function runtime_static_link_state_chip(?string $state): string
+{
+    $meta = runtime_static_link_state_meta($state);
+    return chip((string)$meta['label'], (string)$meta['tone']);
+}
+
+function runtime_static_link_state_hint(?string $state): string
+{
+    $meta = runtime_static_link_state_meta($state);
+    return (string)$meta['hint'];
+}
+
+function runtime_technical_validity_meta(?string $state): array
+{
+    $normalized = strtoupper(trim((string)$state));
+    return match ($normalized) {
+        'TECH_VALID' => [
+            'key' => 'TECH_VALID',
+            'label' => 'Valid evidence',
+            'short_label' => 'valid',
+            'tone' => 'info',
+            'hint' => 'This run satisfies the current technical dataset-validity checks.',
+        ],
+        'TECH_INVALID' => [
+            'key' => 'TECH_INVALID',
+            'label' => 'Invalid / skipped',
+            'short_label' => 'invalid',
+            'tone' => 'high',
+            'hint' => 'This run is excluded from quota-valid and paper-facing evidence.',
+        ],
+        'TECH_LEGACY_UNKNOWN' => [
+            'key' => 'TECH_LEGACY_UNKNOWN',
+            'label' => 'Legacy / unknown',
+            'short_label' => 'legacy',
+            'tone' => 'muted',
+            'hint' => 'This run predates the current normalized validity-state model or has not been fully reclassified.',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'TECH_UNRESOLVED',
+            'label' => $normalized !== '' ? ucwords(strtolower(str_replace('_', ' ', $normalized))) : 'Validity unknown',
+            'short_label' => $normalized !== '' ? strtolower(str_replace('_', ' ', $normalized)) : 'unknown',
+            'tone' => 'muted',
+            'hint' => 'Technical validity could not be classified from the current runtime view.',
+        ],
+    };
+}
+
+function runtime_technical_validity_chip(?string $state): string
+{
+    $meta = runtime_technical_validity_meta($state);
+    return chip((string)$meta['label'], (string)$meta['tone']);
+}
+
+function runtime_technical_validity_label(?string $state): string
+{
+    $meta = runtime_technical_validity_meta($state);
+    return (string)$meta['label'];
+}
+
+function runtime_quota_state_meta(?string $state): array
+{
+    $normalized = strtoupper(trim((string)$state));
+    return match ($normalized) {
+        'QUOTA_VALID' => [
+            'key' => 'QUOTA_VALID',
+            'label' => 'Quota-valid',
+            'short_label' => 'quota-valid',
+            'tone' => 'info',
+            'hint' => 'This run counts toward the current quota-valid dynamic evidence target.',
+        ],
+        'SUPPLEMENTAL_VALID' => [
+            'key' => 'SUPPLEMENTAL_VALID',
+            'label' => 'Supplemental',
+            'short_label' => 'supplemental',
+            'tone' => 'medium',
+            'hint' => 'This run is technically valid, but retained outside the capped quota count.',
+        ],
+        'QUOTA_INELIGIBLE' => [
+            'key' => 'QUOTA_INELIGIBLE',
+            'label' => 'Invalid / skipped',
+            'short_label' => 'invalid',
+            'tone' => 'high',
+            'hint' => 'This run is not eligible for quota-valid evidence.',
+        ],
+        'VALID_COUNTING_UNKNOWN' => [
+            'key' => 'VALID_COUNTING_UNKNOWN',
+            'label' => 'Valid, counting unknown',
+            'short_label' => 'valid unknown',
+            'tone' => 'medium',
+            'hint' => 'The run appears technically valid, but quota counting has not been normalized yet.',
+        ],
+        'QUOTA_LEGACY_UNKNOWN' => [
+            'key' => 'QUOTA_LEGACY_UNKNOWN',
+            'label' => 'Legacy / unknown',
+            'short_label' => 'legacy',
+            'tone' => 'muted',
+            'hint' => 'This run predates the current quota-state model or has not been fully reclassified.',
+        ],
+        default => [
+            'key' => $normalized !== '' ? $normalized : 'QUOTA_UNRESOLVED',
+            'label' => $normalized !== '' ? ucwords(strtolower(str_replace('_', ' ', $normalized))) : 'Quota unknown',
+            'short_label' => $normalized !== '' ? strtolower(str_replace('_', ' ', $normalized)) : 'unknown',
+            'tone' => 'muted',
+            'hint' => 'Quota state could not be classified from the current runtime view.',
+        ],
+    };
+}
+
+function runtime_quota_state_chip(?string $state): string
+{
+    $meta = runtime_quota_state_meta($state);
+    return chip((string)$meta['label'], (string)$meta['tone']);
+}
+
+function runtime_quota_state_label(?string $state): string
+{
+    $meta = runtime_quota_state_meta($state);
+    return (string)$meta['label'];
+}
+
+function dynamic_evidence_quality_meta(array $summary): array
+{
+    $dynamicRuns = (int)($summary['dynamic_runs'] ?? 0);
+    $quotaValidRuns = (int)($summary['quota_valid_runs'] ?? 0);
+    $supplementalRuns = (int)($summary['supplemental_valid_runs'] ?? 0);
+    $invalidRuns = (int)($summary['invalid_or_skipped_runs'] ?? 0);
+    $legacyRuns = (int)($summary['legacy_or_unevaluated_runs'] ?? 0);
+    $staticLinkedRuns = (int)($summary['static_linked_runs'] ?? 0);
+    $featuresAvailableRuns = (int)($summary['features_available_runs'] ?? 0);
+
+    if ($dynamicRuns <= 0) {
+        return [
+            'label' => 'Dynamic missing',
+            'tone' => 'muted',
+            'summary' => 'No dynamic runtime rows are available for this package.',
+        ];
+    }
+
+    if ($quotaValidRuns > 0 && $staticLinkedRuns > 0 && $featuresAvailableRuns > 0) {
+        return [
+            'label' => 'Dynamic bridge ready',
+            'tone' => 'info',
+            'summary' => $quotaValidRuns . ' quota-valid run(s), '
+                . $staticLinkedRuns . ' statically linked, '
+                . $featuresAvailableRuns . ' with derived features.',
+        ];
+    }
+
+    if (($quotaValidRuns + $supplementalRuns) > 0 && ($staticLinkedRuns > 0 || $featuresAvailableRuns > 0)) {
+        $counts = [];
+        if ($quotaValidRuns > 0) {
+            $counts[] = $quotaValidRuns . ' quota-valid';
+        }
+        if ($supplementalRuns > 0) {
+            $counts[] = $supplementalRuns . ' supplemental';
+        }
+        return [
+            'label' => 'Dynamic partial',
+            'tone' => 'medium',
+            'summary' => implode(' and ', $counts) . ' run(s), but static linkage or derived features remain incomplete.',
+        ];
+    }
+
+    if ($supplementalRuns > 0 && $quotaValidRuns <= 0) {
+        return [
+            'label' => 'Dynamic supplemental only',
+            'tone' => 'medium',
+            'summary' => $supplementalRuns . ' supplemental valid run(s) are available, but quota-valid coverage is still absent.',
+        ];
+    }
+
+    if ($invalidRuns > 0 && ($quotaValidRuns + $supplementalRuns) <= 0) {
+        return [
+            'label' => 'Dynamic invalid only',
+            'tone' => 'high',
+            'summary' => $invalidRuns . ' runtime run(s) exist, but all current evidence is invalid or skipped.',
+        ];
+    }
+
+    if ($legacyRuns > 0 && ($quotaValidRuns + $supplementalRuns + $invalidRuns) <= 0) {
+        return [
+            'label' => 'Dynamic legacy only',
+            'tone' => 'muted',
+            'summary' => $legacyRuns . ' historical runtime row(s) exist, but they are still legacy or unevaluated under the current model.',
+        ];
+    }
+
+    return [
+        'label' => 'Dynamic weak',
+        'tone' => 'high',
+        'summary' => 'Dynamic rows exist, but quota-valid evidence or static bridge coverage is still weak.',
+    ];
+}
+
+function dynamic_evidence_quality_chip(array $summary): string
+{
+    $meta = dynamic_evidence_quality_meta($summary);
+    return chip((string)$meta['label'], (string)$meta['tone']);
 }
 
 /** Session stamp/profile -> session type metadata */

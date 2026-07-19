@@ -506,10 +506,6 @@ code {
     width: 100%;
   }
 
-  .panel-actions .chip-density {
-    display: none;
-  }
-
   .panel-actions > * {
     flex: 1 1 auto;
   }

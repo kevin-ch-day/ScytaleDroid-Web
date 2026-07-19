@@ -16,21 +16,43 @@ function apps_directory_paged(?string $category, ?string $q, bool $includeCatalo
     ]);
 
     if (!$includeCatalogOnly) {
-        $extra = "source_state <> 'catalog_only'";
+        $extra = "dir.source_state <> 'catalog_only'";
         $where = $where === '' ? ('WHERE ' . $extra) : ($where . ' AND ' . $extra);
     }
 
-    return db_paged(
-        SQL_APPS_DIR_BASE,
-        SQL_APPS_DIR_COUNT,
-        $where,
-        SQL_APPS_DIR_ORDER,
-        $params,
-        $page,
-        $size,
-        60,
-        'apps_directory_' . sha1(json_encode([$where, $params, $includeCatalogOnly], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
-    );
+    $cacheKey = 'apps_directory_page_v2_' . sha1(json_encode(
+        [$where, $params, $includeCatalogOnly, $page, $size],
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ) ?: $where);
+
+    return web_cache_remember($cacheKey, 60, static function () use ($where, $params, $includeCatalogOnly, $page, $size): array {
+        return db_paged(
+            SQL_APPS_DIR_BASE,
+            SQL_APPS_DIR_COUNT,
+            $where,
+            SQL_APPS_DIR_ORDER,
+            $params,
+            $page,
+            $size,
+            60,
+            'apps_directory_' . sha1(json_encode([$where, $params, $includeCatalogOnly], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $where)
+        );
+    });
+}
+
+/**
+ * Apps Directory — distinct category values for filter controls.
+ *
+ * @return array<int,string>
+ */
+function apps_directory_categories(): array
+{
+    return web_cache_remember('apps_directory_categories_v1', 300, static function (): array {
+        return array_values(array_map(
+            static fn(array $row): string => (string)($row['category'] ?? ''),
+            db_all(SQL_APPS_DIR_CATEGORIES)
+        ));
+    });
 }
 
 /**

@@ -14,12 +14,18 @@ $tier = guard_choice($_GET['tier'] ?? null, $tierOptions);
 [$size, $offset, $page] = pager_from_query($_GET);
 
 $overview = [];
+$topServices = [];
+$topSignals = [];
+$topDomains = [];
 $rows = [];
 $total = 0;
 $errorMsg = null;
 
 try {
     $overview = runtime_deviation_overview();
+    $topServices = runtime_top_services(10);
+    $topSignals = runtime_top_signals(10);
+    $topDomains = runtime_top_domains(10);
     $pg = runtime_deviation_runs_paged($status, $tier, $q, $page, $size);
     $rows = $pg['rows'] ?? [];
     $total = (int)($pg['total'] ?? 0);
@@ -48,6 +54,12 @@ function fmt_bool_label($value): string
     return ((int)$value) === 1 ? 'yes' : 'no';
 }
 
+function fmt_dynamic_page_csv($value): string
+{
+    $text = trim((string)($value ?? ''));
+    return $text === '' ? '-' : $text;
+}
+
 $PAGE_TITLE = 'Runtime Deviation';
 require_once __DIR__ . '/../lib/header.php';
 ?>
@@ -69,8 +81,14 @@ require_once __DIR__ . '/../lib/header.php';
         <div class="metric-card"><span class="metric-label">Dynamic Runs</span><span class="metric-value"><?= e((string)($overview['dynamic_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Packages</span><span class="metric-value"><?= e((string)($overview['dynamic_packages'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Success / Degraded / Failed</span><span class="metric-value"><?= e((string)($overview['successful_runs'] ?? 0)) ?> / <?= e((string)($overview['degraded_runs'] ?? 0)) ?> / <?= e((string)($overview['failed_runs'] ?? 0)) ?></span></div>
-        <div class="metric-card"><span class="metric-label">Feature Rows</span><span class="metric-value"><?= e((string)($overview['feature_rows'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Quota-valid / Supplemental</span><span class="metric-value"><?= e((string)($overview['quota_valid_runs'] ?? 0)) ?> / <?= e((string)($overview['supplemental_valid_runs'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Invalid / Legacy / unknown</span><span class="metric-value"><?= e((string)($overview['invalid_or_skipped_runs'] ?? 0)) ?> / <?= e((string)($overview['legacy_or_unevaluated_runs'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Static Linked / Missing Link</span><span class="metric-value"><?= e((string)($overview['static_linked_runs'] ?? 0)) ?> / <?= e((string)($overview['missing_static_link_runs'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Features Ready / Missing</span><span class="metric-value"><?= e((string)($overview['features_available_runs'] ?? 0)) ?> / <?= e((string)($overview['missing_feature_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Indicators / Issues</span><span class="metric-value"><?= e((string)($overview['indicator_rows'] ?? 0)) ?> / <?= e((string)($overview['issue_rows'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Domain Rows</span><span class="metric-value"><?= e((string)($overview['domain_observation_rows'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Observed / Root Domains</span><span class="metric-value"><?= e((string)($overview['observed_domains'] ?? 0)) ?> / <?= e((string)($overview['root_domains'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Service / Signal Catalog</span><span class="metric-value"><?= e((string)($overview['service_catalog_rows'] ?? 0)) ?> / <?= e((string)($overview['signal_catalog_rows'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Cohorts / Regimes</span><span class="metric-value"><?= e((string)($overview['cohorts'] ?? 0)) ?> / <?= e((string)($overview['risk_regime_rows'] ?? 0)) ?></span></div>
       </div>
     </div>
@@ -81,8 +99,166 @@ require_once __DIR__ . '/../lib/header.php';
   <div class="panel">
     <div class="panel-header">
       <div>
+        <h2 class="panel-title">Fleet Signal Context</h2>
+        <p class="panel-subtitle">Interpretation signals mapped from observed services and domains.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <?php if (empty($topSignals) && !$errorMsg): ?>
+        <p class="muted">No mapped signal rows were found in dynamic domain observations.</p>
+      <?php elseif (!empty($topSignals)): ?>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th>Signal</th>
+                <th>Focus</th>
+                <th>Services</th>
+                <th>Coverage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($topSignals as $row): ?>
+                <tr>
+                  <td>
+                    <strong><?= e((string)($row['display_name'] ?? $row['signal_key'] ?? '')) ?></strong><br>
+                    <span class="muted"><?= e((string)($row['signal_key'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e(fmt_dynamic_page_csv($row['focus_area'] ?? '')) ?> · <?= e(fmt_dynamic_page_csv($row['severity_hint'] ?? '')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['signal_family'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e(fmt_dynamic_page_csv($row['service_names_csv'] ?? '')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['service_categories_csv'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    packages <?= e((string)($row['package_count'] ?? 0)) ?>,
+                    runs <?= e((string)($row['observed_run_count'] ?? 0)) ?>,
+                    domains <?= e((string)($row['distinct_domains'] ?? 0)) ?><br>
+                    <span class="muted">hits <?= e(fmt_rate($row['total_indicator_hits'] ?? 0, 0)) ?> · services <?= e((string)($row['matched_service_count'] ?? 0)) ?></span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">Top Observed Domains</h2>
+        <p class="panel-subtitle">Highest-volume observed domains across persisted dynamic captures.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <?php if (empty($topDomains) && !$errorMsg): ?>
+        <p class="muted">No domain observation rows were found.</p>
+      <?php elseif (!empty($topDomains)): ?>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th>Domain</th>
+                <th>Class</th>
+                <th>Mapped Context</th>
+                <th>Coverage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($topDomains as $row): ?>
+                <tr>
+                  <td class="cell-clip">
+                    <strong><?= e((string)($row['observed_domain'] ?? '')) ?></strong><br>
+                    <span class="muted"><?= e((string)($row['root_domain'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e(fmt_dynamic_page_csv($row['owner_classes_csv'] ?? '')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['role_classes_csv'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e(fmt_dynamic_page_csv($row['service_names_csv'] ?? '')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['signal_names_csv'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    packages <?= e((string)($row['package_count'] ?? 0)) ?>,
+                    runs <?= e((string)($row['observed_run_count'] ?? 0)) ?>,
+                    hits <?= e(fmt_rate($row['total_indicator_hits'] ?? 0, 0)) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['indicator_types_csv'] ?? '')) ?></span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">Fleet Service Context</h2>
+        <p class="panel-subtitle">Most frequent mapped services across dynamic DNS/SNI domain observations.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <?php if (empty($topServices) && !$errorMsg): ?>
+        <p class="muted">No mapped service rows were found in dynamic domain observations.</p>
+      <?php elseif (!empty($topServices)): ?>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Owner / Category</th>
+                <th>Signals</th>
+                <th>Coverage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($topServices as $row): ?>
+                <tr>
+                  <td>
+                    <strong><?= e((string)($row['display_name'] ?? $row['service_key'] ?? '')) ?></strong><br>
+                    <span class="muted"><?= e((string)($row['service_key'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e((string)($row['owner_name'] ?? '-')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['owner_class'] ?? '')) ?> · <?= e(fmt_dynamic_page_csv($row['service_category'] ?? '')) ?></span><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['primary_use_case'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    <?= e(fmt_dynamic_page_csv($row['signal_names_csv'] ?? '')) ?><br>
+                    <span class="muted"><?= e(fmt_dynamic_page_csv($row['signal_focus_areas_csv'] ?? '')) ?> · <?= e(fmt_dynamic_page_csv($row['signal_severity_hints_csv'] ?? '')) ?></span>
+                  </td>
+                  <td>
+                    packages <?= e((string)($row['package_count'] ?? 0)) ?>,
+                    runs <?= e((string)($row['observed_run_count'] ?? 0)) ?>,
+                    domains <?= e((string)($row['distinct_domains'] ?? 0)) ?><br>
+                    <span class="muted">hits <?= e(fmt_rate($row['total_indicator_hits'] ?? 0, 0)) ?> · roots <?= e((string)($row['distinct_root_domains'] ?? 0)) ?></span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="panel">
+    <div class="panel-header">
+      <div>
         <h2 class="panel-title">Run Index</h2>
-        <p class="panel-subtitle">Filter by package, app label, run id, status, or tier.</p>
+        <p class="panel-subtitle">Filter by package, app label, run id, run outcome, or tier.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -92,9 +268,9 @@ require_once __DIR__ . '/../lib/header.php';
           <input type="search" name="q" value="<?= e((string)$q) ?>" placeholder="package, app label, or run id">
         </label>
         <label>
-          <span class="metric-label">Status</span>
+          <span class="metric-label">Run outcome</span>
           <select name="status">
-            <option value="">Any status</option>
+            <option value="">Any outcome</option>
             <?php foreach ($statusOptions as $opt): ?>
               <option value="<?= e((string)$opt) ?>" <?= (string)$status === (string)$opt ? 'selected' : '' ?>><?= e(ucfirst((string)$opt)) ?></option>
             <?php endforeach; ?>
@@ -136,7 +312,7 @@ require_once __DIR__ . '/../lib/header.php';
             <thead>
               <tr>
                 <th>Package</th>
-                <th>Status</th>
+                <th>Run outcome</th>
                 <th>Run Profile</th>
                 <th>Started</th>
                 <th>Network</th>
@@ -180,7 +356,9 @@ require_once __DIR__ . '/../lib/header.php';
                   <td>
                     <?= e($network) ?><br>
                     <span class="muted">low signal: <?= e(fmt_bool_label($row['low_signal'] ?? null)) ?>, issues: <?= e((string)($row['issue_count'] ?? 0)) ?></span><br>
-                    <?= chip($featureState, $featureState === 'features_available' ? 'info' : 'medium') ?>
+                    <span class="muted">domains: <?= e((string)($row['distinct_observed_domains'] ?? 0)) ?> observed / <?= e((string)($row['distinct_root_domains'] ?? 0)) ?> root</span><br>
+                    <span class="muted">services: <?= e((string)($row['matched_service_count'] ?? 0)) ?>, signals: <?= e((string)($row['matched_signal_count'] ?? 0)) ?></span><br>
+                    <?= runtime_feature_state_chip($featureState) ?>
                   </td>
                   <td>
                     <?= e($regime) ?><br>
@@ -193,8 +371,9 @@ require_once __DIR__ . '/../lib/header.php';
                     <?php else: ?>
                       <span class="cell-clip"><?= e($runId) ?></span><br>
                     <?php endif; ?>
-                    <span class="muted">countable: <?= e(fmt_bool_label($row['countable'] ?? null)) ?></span><br>
-                    <?= chip($staticLinkState, $staticLinkState === 'static_linked' ? 'info' : 'high') ?>
+                    <span class="muted">quota: <?= e(runtime_quota_state_label((string)($row['quota_state'] ?? ''))) ?> · technical: <?= e(runtime_technical_validity_label((string)($row['technical_validity_state'] ?? ''))) ?></span><br>
+                    <?= runtime_static_link_state_chip($staticLinkState) ?>
+                    <?= runtime_feature_state_chip($featureState) ?>
                   </td>
                 </tr>
               <?php endforeach; ?>

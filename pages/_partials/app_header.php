@@ -10,6 +10,7 @@ $activeSessionRow = $activeSessionRow ?? null;
 $appLabel = $app['app_label'] ?? $packageName;
 $category = $app['category'] ?? 'Uncategorized';
 $profile = $app['profile_label'] ?? 'Unclassified';
+$contextFragments = app_context_fragments((string)$category, (string)$profile);
 $grade = $activeSessionUsable ? ($activeSessionRow['grade'] ?? ($app['grade'] ?? null)) : ($app['grade'] ?? null);
 $score = $activeSessionUsable ? ($activeSessionRow['score_capped'] ?? ($app['score_capped'] ?? null)) : ($app['score_capped'] ?? null);
 $auditStamp = $activeSessionUsable ? ($activeSessionRow['audit_created_at'] ?? ($app['last_scanned'] ?? null)) : ($app['last_scanned'] ?? null);
@@ -32,8 +33,9 @@ $activeSessionTypeTone = (string)(session_type_meta((string)$activeSession, (str
         <h1 class="panel-title"><?= e($appLabel) ?></h1>
         <p class="panel-subtitle">
           <strong><?= e($packageName) ?></strong>
-          <span class="muted">· <?= e($category) ?></span>
-          <span class="muted">· <?= e($profile) ?></span>
+          <?php foreach ($contextFragments as $fragment): ?>
+            <span class="muted">· <?= e($fragment) ?></span>
+          <?php endforeach; ?>
         </p>
       </div>
       <div class="panel-actions chip-row">

@@ -21,7 +21,11 @@ Canonical static + Web read models (preferred):
 - `app_versions`
 - `static_permission_matrix`
 - `static_string_summary`
-- `static_string_selected_samples`
+- `static_string_samples` (canonical persistence; Web reads via `v_web_app_string_samples`)
+- `v_web_app_components`
+- `v_web_app_component_acl`
+- `v_web_app_component_summary`
+- `v_web_app_report_summary`
 
 Optional / compatibility (may be empty on newer installs):
 
@@ -29,8 +33,11 @@ Optional / compatibility (may be empty on newer installs):
 - `static_findings` (legacy compatibility table — do not use for new Web features)
 
 Runtime deviation views:
+- `v_dynamic_run_context_v1` (analyst-owned normalized runtime context; preferred semantic source)
 - `v_web_runtime_run_index`
 - `v_web_runtime_run_detail`
+
+Runtime deviation backing tables (consumed through the views above; do not prefer raw table reads in PHP):
 - `dynamic_sessions`
 - `dynamic_network_features`
 - `dynamic_network_indicators`
@@ -63,7 +70,7 @@ Adjust index names to match your organisation’s conventions.
 ## Connection Expectations
 
 - Database user must have **SELECT** on the tables/views listed above.
-- No write access is required.
+- No persistent write access is required. Some high-volume read pages use connection-local `CREATE TEMPORARY TABLE` surfaces plus short file-backed caches to avoid repeatedly scanning expensive views; grant temporary-table capability if your MariaDB/MySQL policy separates it from ordinary session privileges.
 - Character set should be `utf8mb4`.
 
 ### Environment overrides
@@ -91,7 +98,9 @@ Only set the values you need—anything unset falls back to the constants in `db
 
 The preferred read contract is the `v_web_*` view set created by the CLI database
 bootstrap. These views keep app-directory and runtime-deviation reconstruction in
-the database instead of duplicating it in PHP.
+the database instead of duplicating it in PHP. For dynamic evidence, prefer the
+runtime index/detail views, which are normalized from `v_dynamic_run_context_v1`,
+over reconstructing linkage from raw tables in PHP.
 
 ```sql
 -- Verify the web app-directory contract
@@ -122,7 +131,16 @@ ORDER BY session_stamp DESC
 LIMIT 5;
 
 -- Confirm runtime deviation runs exist
-SELECT package_name, status, tier, started_at_utc, dynamic_run_id, feature_state, static_link_state
+SELECT package_name,
+       status,
+       tier,
+       started_at_utc,
+       dynamic_run_id,
+       technical_validity_state,
+       quota_state,
+       cohort_eligibility_state,
+       feature_state,
+       static_link_state
 FROM v_web_runtime_run_index
 ORDER BY started_at_utc DESC
 LIMIT 5;
@@ -151,7 +169,8 @@ If any query returns zero rows, the UI will show empty states. Populate the data
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| **`runs` table** | Diagnostic only | Count exposed as `legacy_runs` in `pages/diag.php` / `app_diagnostics()`. Often zero when only canonical static is populated. |
-| **`static_findings_summary` join** | `SQL_APP_OVERVIEW` | Still joined for `details_json` bridge; prefer a Web view column if the Python repo adds one. |
+| **`runs` table** | Retired from Web diagnostics | Static legacy mirror. The Web diagnostic page now reports this surface as retired instead of querying it live. |
+| **`dynamic_sessions` direct reads** | Compatibility only | Web runtime pages should prefer `v_web_runtime_run_index` / `v_web_runtime_run_detail`, which inherit normalized validity and quota semantics from `v_dynamic_run_context_v1`. Web-facing runtime summaries now center `technical_validity_state` and `quota_state` instead of `countable` / `valid_dataset_run`. |
+| **`static_findings_summary` bridge** | Centralized in repo-owned Web views | PHP query helpers should consume `v_web_app_report_summary.details_json` / `v_web_app_string_summary.findings_details` instead of naming `static_findings_summary` directly. |
 | **Dynamic ↔ static handoff** | Research / ops | Use analyst `report_dynamic_static_alignment.py` (Python repo); Web shows `static_link_state` on runtime index only. |
 | **Password env naming** | Resolved in code | `db_engine.php` accepts `SCYTALEDROID_DB_PASS` **or** `SCYTALEDROID_DB_PASSWD`. |

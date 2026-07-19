@@ -10,6 +10,7 @@ require_once __DIR__ . '/db_filters.php';
 require_once __DIR__ . '/db_apps_directory.php';
 require_once __DIR__ . '/db_fleet_runtime.php';
 require_once __DIR__ . '/db_dynamic.php';
+require_once __DIR__ . '/db_dynamic_collection_queue.php';
 require_once __DIR__ . '/db_permission_intel.php';
 require_once __DIR__ . '/db_findings_explorer.php';
 require_once __DIR__ . '/db_static_session_health.php';

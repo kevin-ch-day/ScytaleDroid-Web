@@ -335,6 +335,44 @@
   color: var(--info);
 }
 
+.severity-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .6rem;
+}
+
+.severity-mini-stat {
+  display: grid;
+  gap: .2rem;
+}
+
+.severity-mini-key {
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.severity-mini-value {
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.severity-mini-value.bad {
+  color: var(--bad);
+}
+
+.severity-mini-value.warn {
+  color: var(--warn);
+}
+
+.severity-mini-value.info {
+  color: var(--info);
+}
+
 /* ---------- Detail Header ---------- */
 .detail-hero .panel-header {
   align-items: flex-start;
@@ -431,21 +469,6 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
-}
-
-/* ---------- Small Status Chips ---------- */
-.chip-density {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: .45rem .8rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: .82rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 @media (max-width: 1200px) {
@@ -586,23 +609,6 @@
   gap: .35rem;
 }
 
-.package-inline {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  margin-top: .4rem;
-  min-width: 0;
-}
-
-.package-link {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1 1 auto;
-}
-
 .metric-value-session,
 .session-stamp {
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -737,10 +743,6 @@
     align-items: stretch;
   }
 
-  .package-inline {
-    flex-wrap: wrap;
-  }
-
   .compact-row {
     flex-direction: column;
   }
@@ -777,10 +779,6 @@
 
   .metrics-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .chip-density {
-    display: none;
   }
 
   .detail-hero .panel-actions {

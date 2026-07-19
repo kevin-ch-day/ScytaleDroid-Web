@@ -8,6 +8,7 @@ require_once __DIR__ . '/../database/db_lib/db_func.php';
 $runId = guard_dynamic_run_id($_GET['run'] ?? null);
 $run = null;
 $indicators = [];
+$domainContext = [];
 $issues = [];
 $cohorts = [];
 $models = [];
@@ -18,6 +19,7 @@ if ($runId !== null) {
     try {
         $run = dynamic_run_detail($runId);
         if ($run !== null) {
+            $domainContext = dynamic_run_domain_context($runId, 120);
             $indicators = dynamic_run_indicators($runId, 120);
             $issues = dynamic_run_issues($runId, 80);
             $cohorts = dynamic_run_cohorts($runId, 40);
@@ -54,15 +56,30 @@ function fmt_run_bool($value): string
     return ((int)$value) === 1 ? 'yes' : 'no';
 }
 
-function state_chip_tone(string $state): string
+function fmt_run_csv($value): string
 {
-    if ($state === 'features_available' || $state === 'static_linked') {
-        return 'info';
+    $text = trim((string)($value ?? ''));
+    return $text === '' ? '-' : $text;
+}
+
+function run_csv_has($value, string $needle): bool
+{
+    $parts = array_map('trim', explode(',', strtolower((string)($value ?? ''))));
+    return in_array(strtolower($needle), $parts, true);
+}
+
+$domainCount = count($domainContext);
+$firstPartyDomainCount = 0;
+$thirdPartyDomainCount = 0;
+$domainHitCount = 0;
+foreach ($domainContext as $row) {
+    $domainHitCount += (int)($row['total_indicator_hits'] ?? 0);
+    if (((int)($row['is_first_party'] ?? 0)) === 1 || run_csv_has($row['owner_classes_csv'] ?? '', 'first_party')) {
+        $firstPartyDomainCount++;
     }
-    if ($state === 'missing_features') {
-        return 'medium';
+    if (run_csv_has($row['owner_classes_csv'] ?? '', 'third_party')) {
+        $thirdPartyDomainCount++;
     }
-    return 'high';
 }
 
 $packageName = is_array($run) ? (string)($run['package_name'] ?? '') : '';
@@ -92,8 +109,10 @@ require_once __DIR__ . '/../lib/header.php';
         <div class="panel-actions chip-row">
           <?= status_chip((string)($run['status'] ?? 'UNKNOWN')) ?>
           <?= chip((string)($run['tier'] ?? 'unknown'), 'muted') ?>
-          <?= chip($featureState, state_chip_tone($featureState)) ?>
-          <?= chip($staticLinkState, state_chip_tone($staticLinkState)) ?>
+          <?= runtime_quota_state_chip((string)($run['quota_state'] ?? '')) ?>
+          <?= runtime_technical_validity_chip((string)($run['technical_validity_state'] ?? '')) ?>
+          <?= runtime_feature_state_chip($featureState) ?>
+          <?= runtime_static_link_state_chip($staticLinkState) ?>
           <?php if ($packageName !== ''): ?>
             <a class="btn" href="<?= e(url('pages/app_dynamic.php') . '?pkg=' . urlencode($packageName)) ?>">Package Dynamic</a>
           <?php endif; ?>
@@ -105,9 +124,9 @@ require_once __DIR__ . '/../lib/header.php';
   <?php if ($featureState !== 'features_available' || $staticLinkState !== 'static_linked'): ?>
     <section class="section">
       <div class="alert alert-warning">
-        This run has incomplete derived DB linkage:
-        <?= e($featureState) ?>,
-        <?= e($staticLinkState) ?>.
+        This run has incomplete derived DB linkage.
+        <?= e(runtime_feature_state_hint($featureState)) ?>
+        <?= e(runtime_static_link_state_hint($staticLinkState)) ?>
         Evidence remains available, but cross-analysis interpretation should treat these fields as incomplete.
       </div>
     </section>
@@ -127,12 +146,15 @@ require_once __DIR__ . '/../lib/header.php';
           <div><dt>Started</dt><dd><?= e(fmt_date((string)($run['started_at_utc'] ?? ''))) ?></dd></div>
           <div><dt>Ended</dt><dd><?= e(fmt_date((string)($run['ended_at_utc'] ?? ''))) ?></dd></div>
           <div><dt>Duration</dt><dd><?= e(fmt_run_number($run['duration_seconds'] ?? $run['sampling_duration_seconds'] ?? null, 1)) ?>s</dd></div>
-          <div><dt>Run Profile</dt><dd><?= e((string)($run['operator_run_profile'] ?? $run['run_profile'] ?? $run['profile_key'] ?? 'unknown')) ?></dd></div>
-          <div><dt>Interaction</dt><dd><?= e((string)($run['operator_interaction_level'] ?? $run['interaction_level'] ?? 'unknown')) ?></dd></div>
+          <div><dt>Run Profile</dt><dd><?= e((string)($run['run_profile'] ?? 'unknown')) ?></dd></div>
+          <div><dt>Interaction</dt><dd><?= e((string)($run['interaction_level'] ?? 'unknown')) ?></dd></div>
           <div><dt>Evidence Path</dt><dd class="cell-clip"><?= e((string)($run['evidence_path'] ?? '-')) ?></dd></div>
           <div><dt>PCAP</dt><dd><?= e(fmt_run_bool($run['pcap_valid'] ?? null)) ?> · <?= e(fmt_run_number($run['pcap_bytes'] ?? null, 0)) ?> bytes</dd></div>
-          <div><dt>Feature State</dt><dd><?= chip($featureState, state_chip_tone($featureState)) ?></dd></div>
-          <div><dt>Static Link</dt><dd><?= chip($staticLinkState, state_chip_tone($staticLinkState)) ?></dd></div>
+          <div><dt>Technical Validity</dt><dd><?= runtime_technical_validity_chip((string)($run['technical_validity_state'] ?? '')) ?></dd></div>
+          <div><dt>Quota State</dt><dd><?= runtime_quota_state_chip((string)($run['quota_state'] ?? '')) ?></dd></div>
+          <div><dt>Cohort Eligibility</dt><dd><?= e((string)($run['cohort_eligibility_state'] ?? 'COHORT_NOT_EVALUATED')) ?></dd></div>
+          <div><dt>Feature State</dt><dd><?= runtime_feature_state_chip($featureState) ?></dd></div>
+          <div><dt>Static Link</dt><dd><?= runtime_static_link_state_chip($staticLinkState) ?></dd></div>
         </dl>
       </div>
     </div>
@@ -153,6 +175,69 @@ require_once __DIR__ . '/../lib/header.php';
           <div class="metric-card"><span class="metric-label">DNS / SNI</span><span class="metric-value"><?= e(fmt_run_number($run['unique_dns_qname_count'] ?? null, 0)) ?> / <?= e(fmt_run_number($run['unique_sni_count'] ?? null, 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Low Signal</span><span class="metric-value"><?= e(fmt_run_bool($run['low_signal'] ?? null)) ?></span></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Domain Destinations</h2>
+          <p class="panel-subtitle">Observed DNS/SNI destinations mapped to services and interpretation signals.</p>
+        </div>
+      </div>
+      <div class="panel-body detail-stack">
+        <div class="metrics-grid">
+          <div class="metric-card"><span class="metric-label">Observed Domains</span><span class="metric-value"><?= e((string)$domainCount) ?></span></div>
+          <div class="metric-card"><span class="metric-label">First-party / Third-party</span><span class="metric-value"><?= e((string)$firstPartyDomainCount) ?> / <?= e((string)$thirdPartyDomainCount) ?></span></div>
+          <div class="metric-card"><span class="metric-label">Indicator Hits</span><span class="metric-value"><?= e(fmt_run_number($domainHitCount, 0)) ?></span></div>
+        </div>
+
+        <?php if (empty($domainContext)): ?>
+          <p class="muted">No domain observation rows were found for this dynamic run.</p>
+        <?php else: ?>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Domain</th>
+                  <th>Class</th>
+                  <th>Service</th>
+                  <th>Signals</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($domainContext as $row): ?>
+                  <tr>
+                    <td class="cell-clip">
+                      <strong><?= e((string)($row['observed_domain'] ?? '')) ?></strong><br>
+                      <span class="muted"><?= e((string)($row['root_domain'] ?? '')) ?></span>
+                    </td>
+                    <td>
+                      <?= e(fmt_run_csv($row['owner_classes_csv'] ?? '')) ?> · <?= e(fmt_run_csv($row['role_classes_csv'] ?? '')) ?><br>
+                      <span class="muted"><?= e(fmt_run_csv($row['confidence_csv'] ?? '')) ?> · <?= e(fmt_run_csv($row['classification_basis_csv'] ?? '')) ?></span>
+                    </td>
+                    <td>
+                      <?= e(fmt_run_csv($row['service_names_csv'] ?? $row['service_keys_csv'] ?? '')) ?><br>
+                      <span class="muted"><?= e(fmt_run_csv($row['service_categories_csv'] ?? '')) ?></span>
+                    </td>
+                    <td>
+                      <?= e(fmt_run_csv($row['signal_names_csv'] ?? $row['signal_keys_csv'] ?? '')) ?><br>
+                      <span class="muted"><?= e(fmt_run_csv($row['signal_focus_areas_csv'] ?? '')) ?> · <?= e(fmt_run_csv($row['signal_severity_hints_csv'] ?? '')) ?></span>
+                    </td>
+                    <td>
+                      rows <?= e((string)($row['observation_rows'] ?? 0)) ?>,
+                      hits <?= e(fmt_run_number($row['total_indicator_hits'] ?? 0, 0)) ?><br>
+                      <span class="muted"><?= e(fmt_run_csv($row['indicator_types_csv'] ?? '')) ?> · <?= e(fmt_run_csv($row['indicator_sources_csv'] ?? '')) ?></span>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
   </section>

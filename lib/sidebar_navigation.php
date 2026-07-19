@@ -79,6 +79,15 @@ $navSections = [
         ],
       ],
       [
+        'label' => 'Dynamic Collection Queue',
+        'href' => url('pages/dynamic_collection_queue.php'),
+        'desc' => 'Research cohort baseline/interactive quota gaps and supplemental evidence',
+        'match' => [
+          url('pages/dynamic_collection_queue.php'),
+          '/pages/dynamic_collection_queue.php',
+        ],
+      ],
+      [
         'label' => 'Runtime Deviation',
         'href' => url('pages/dynamic.php'),
         'desc' => 'Review dynamic runs, features, and regimes',

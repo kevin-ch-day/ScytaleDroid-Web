@@ -15,7 +15,11 @@
           <div class="metric-card"><span class="metric-label">Dangerous Permissions</span><span class="metric-value bad"><?= e((string)$selectedDangerous) ?></span></div>
           <div class="metric-card"><span class="metric-label">Exported Providers</span><span class="metric-value warn"><?= e((string)$componentSummary['exported_providers']) ?></span></div>
           <div class="metric-card"><span class="metric-label">High-Entropy Strings</span><span class="metric-value"><?= e((string)$selectedHighEntropy) ?></span></div>
-          <div class="metric-card"><span class="metric-label">Dynamic Runs</span><span class="metric-value info"><?= e((string)($dynamicSummary['dynamic_runs'] ?? 0)) ?></span></div>
+          <div class="metric-card">
+            <span class="metric-label">Dynamic Evidence</span>
+            <span class="metric-value info"><?= e((string)dynamic_evidence_quality_meta($dynamicSummary)['label']) ?></span>
+            <p class="muted"><?= e((string)dynamic_evidence_quality_meta($dynamicSummary)['summary']) ?></p>
+          </div>
           <div class="metric-card">
             <span class="metric-label">Data Source Session</span>
             <span class="metric-value metric-value-session"><?= e((string)$activeSession) ?></span>
@@ -28,9 +32,13 @@
           <?= chip('Permissions ' . ($sessionHealth['permission_rows'] > 0 ? 'present' : 'missing'), $sessionHealth['permission_rows'] > 0 ? 'info' : 'medium') ?>
           <?= chip('Strings ' . ($sessionHealth['string_rows'] > 0 ? 'present' : 'missing'), $sessionHealth['string_rows'] > 0 ? 'info' : 'medium') ?>
           <?= chip('Components ' . ($componentSummary['providers'] > 0 ? 'present' : 'missing'), $componentSummary['providers'] > 0 ? 'info' : 'medium') ?>
-          <?= chip(((int)($dynamicSummary['dynamic_runs'] ?? 0)) > 0 ? 'Dynamic available' : 'Dynamic missing', ((int)($dynamicSummary['dynamic_runs'] ?? 0)) > 0 ? 'info' : 'muted') ?>
+          <?= dynamic_evidence_quality_chip($dynamicSummary) ?>
           <?php if (((int)($dynamicSummary['dynamic_runs'] ?? 0)) > 0): ?>
-            <?= chip('Dynamic match: package-level', 'medium') ?>
+            <?= chip('Dynamic runs ' . (string)($dynamicSummary['dynamic_runs'] ?? 0), 'muted') ?>
+            <?= chip('Quota-valid ' . (string)($dynamicSummary['quota_valid_runs'] ?? 0), ((int)($dynamicSummary['quota_valid_runs'] ?? 0)) > 0 ? 'info' : 'medium') ?>
+            <?= chip('Supplemental ' . (string)($dynamicSummary['supplemental_valid_runs'] ?? 0), ((int)($dynamicSummary['supplemental_valid_runs'] ?? 0)) > 0 ? 'medium' : 'muted') ?>
+            <?= chip('Static linked ' . (string)($dynamicSummary['static_linked_runs'] ?? 0), ((int)($dynamicSummary['static_linked_runs'] ?? 0)) > 0 ? 'info' : 'high') ?>
+            <?= chip('Features ready ' . (string)($dynamicSummary['features_available_runs'] ?? 0), ((int)($dynamicSummary['features_available_runs'] ?? 0)) > 0 ? 'info' : 'high') ?>
           <?php endif; ?>
         </div>
         <div class="card compact-card top-gap">

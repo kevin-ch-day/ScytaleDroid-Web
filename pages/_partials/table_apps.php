@@ -1,7 +1,7 @@
 <?php
 // pages/_partials/table_apps.php
 // Expected variables (extracted by index.php):
-// $rows, $total, $page, $size, $baseUrl, $persist, $severityTotals, $analyzedCount, $catalogOnlyCount, $groupSearchResults, $analyzedRows, $catalogOnlyRows
+// $rows, $total, $page, $size, $baseUrl, $persist, $severityTotals, $analyzedCount, $catalogOnlyCount, $groupSearchResults, $analyzedRows, $catalogOnlyRows, $latestScannedAt
 ?>
 
 <section class="panel" data-panel="results">
@@ -12,9 +12,6 @@
         Fleet view of the latest web-facing static summaries. <?= $total !== null ? e((int)$total) . ' tracked app' . ((int)$total === 1 ? '' : 's') : e('Unknown total') ?>.
       </p>
       <p class="muted"><?= e($directoryStateSummary ?? '') ?></p>
-    </div>
-    <div class="panel-actions">
-      <button type="button" class="btn-ghost" data-action="toggle-density">Toggle Density</button>
     </div>
   </div>
   <div class="panel-body">
@@ -27,6 +24,7 @@
       <div class="metric-card">
         <span class="metric-label">Latest Session (page)</span>
         <span class="metric-value metric-value-session"><?= e($latestSessionStamp ?: '—') ?></span>
+        <p class="muted">Latest scan <?= e($latestScannedAt !== null ? fmt_date_compact(date('c', (int)$latestScannedAt)) : '—') ?></p>
       </div>
       <div class="metric-card">
         <span class="metric-label">Source Mix (page)</span>
@@ -45,9 +43,35 @@
         </div>
       </div>
       <div class="metric-card">
-        <span class="metric-label">High Findings (page)</span>
-        <span class="metric-value bad" data-metric="high"><?= e((string)$severityTotals['high']) ?></span>
-        <p class="muted">Medium <?= e((string)$severityTotals['med']) ?> • Low <?= e((string)$severityTotals['low']) ?></p>
+        <span class="metric-label">Severity Totals (page)</span>
+        <div class="severity-mini-grid" aria-label="Page severity totals">
+          <div class="severity-mini-stat">
+            <span class="severity-mini-key">H</span>
+            <span class="severity-mini-value bad" data-metric="high"><?= e((string)$severityTotals['high']) ?></span>
+          </div>
+          <div class="severity-mini-stat">
+            <span class="severity-mini-key">M</span>
+            <span class="severity-mini-value warn"><?= e((string)$severityTotals['med']) ?></span>
+          </div>
+          <div class="severity-mini-stat">
+            <span class="severity-mini-key">L</span>
+            <span class="severity-mini-value info"><?= e((string)$severityTotals['low']) ?></span>
+          </div>
+          <div class="severity-mini-stat">
+            <span class="severity-mini-key">I</span>
+            <span class="severity-mini-value"><?= e((string)$severityTotals['info']) ?></span>
+          </div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Dynamic Coverage (page)</span>
+        <span class="metric-value"><?= e((string)($dynamicAppCount ?? 0)) ?> apps</span>
+        <p class="muted">
+          <?= e((string)($dynamicRunCount ?? 0)) ?> runs •
+          <?= e((string)($dynamicQuotaValidCount ?? 0)) ?> quota-valid •
+          <?= e((string)($dynamicDomainCount ?? 0)) ?> observed domains •
+          <?= e((string)($dynamicRootDomainCount ?? 0)) ?> root domains
+        </p>
       </div>
     </div>
 
@@ -60,17 +84,16 @@
         <thead>
           <tr>
             <th>App</th>
-            <th class="col-center">Grade</th>
-            <th class="col-num">Score</th>
-            <th class="col-center">H/M/L</th>
-            <th>Data State</th>
-            <th>Last Scanned</th>
+            <th>Static Posture</th>
+            <th>Dynamic Runs</th>
+            <th>Network Context</th>
+            <th>Latest Evidence</th>
           </tr>
         </thead>
         <tbody>
           <?php if (!$rows): ?>
             <tr>
-              <td colspan="6" class="text-center muted p-4">
+              <td colspan="5" class="text-center muted p-4">
                 <em>No apps found. Try clearing filters.</em>
               </td>
             </tr>
@@ -79,13 +102,17 @@
             $renderRow = static function (array $r): void {
               $pkg = $r['package_name'] ?? '';
               $viewUrl = $pkg ? url('pages/app_report.php') . '?pkg=' . urlencode($pkg) : null;
-              $hml = app_directory_hmli_text($r);
+              $dynamicUrl = $pkg ? url('pages/app_dynamic.php') . '?pkg=' . urlencode($pkg) : null;
               $state = (string)($r['source_state'] ?? null);
-              $sessionStamp = trim((string)($r['session_stamp'] ?? ''));
               $profile = trim((string)($r['profile_label'] ?? ''));
               $category = trim((string)($r['category'] ?? ''));
-              $stateSummary = source_state_summary_text($state);
-              $stateHint = source_state_hint($state);
+              $secondaryLabel = app_secondary_label($profile, $category);
+              $dynamicRuns = (int)($r['dynamic_runs'] ?? 0);
+              $dynamicSuccess = (int)($r['dynamic_successful_runs'] ?? 0);
+              $dynamicDegraded = (int)($r['dynamic_degraded_runs'] ?? 0);
+              $dynamicFailed = (int)($r['dynamic_failed_runs'] ?? 0);
+              $latestDynamicRunId = trim((string)($r['latest_dynamic_run_id'] ?? ''));
+              $latestDynamicUrl = $latestDynamicRunId !== '' ? url('pages/dynamic_run.php') . '?run=' . urlencode($latestDynamicRunId) : null;
             ?>
               <tr>
                 <td class="cell-clip">
@@ -96,39 +123,66 @@
                       <?= e($r['app_label'] ?? $pkg) ?>
                     <?php endif; ?>
                   </div>
-                  <div class="table-subline"><?= e($profile !== '' ? $profile : ($category !== '' ? $category : 'Unclassified')) ?></div>
-                  <div class="package-inline">
-                    <?php if ($viewUrl): ?>
-                      <a href="<?= e($viewUrl) ?>" class="muted js-package package-link" data-package="<?= e($pkg) ?>"><?= e($pkg) ?></a>
-                    <?php else: ?>
-                      <span class="muted js-package package-link" data-package="<?= e($pkg) ?>"><?= e($pkg) ?></span>
-                    <?php endif; ?>
-                    <?php if ($pkg): ?>
-                      <button type="button" class="copy-btn" data-copy="<?= e($pkg) ?>" aria-label="Copy package name">Copy</button>
-                    <?php endif; ?>
-                  </div>
+                  <?php if ($secondaryLabel !== ''): ?>
+                    <div class="table-subline"><?= e($secondaryLabel) ?></div>
+                  <?php endif; ?>
+                  <div class="table-subline"><?= e((string)$pkg) ?></div>
                 </td>
-                <td class="col-center"><?= app_directory_grade_badge($r['grade'] ?? null, $state) ?></td>
-                <td class="col-num"><?= e(app_directory_score_text($r['score_capped'] ?? null, $state)) ?></td>
-                <td class="col-center" data-hml="<?= e($hml) ?>"><?= e($hml) ?></td>
                 <td>
-                  <div class="meta-stack">
-                    <span class="table-subline" title="<?= e($stateHint) ?>"><?= source_state_chip($state) ?></span>
-                    <span class="table-subline muted"><?= e($stateSummary) ?></span>
-                    <span class="session-stamp"><?= e($sessionStamp !== '' ? $sessionStamp : '—') ?></span>
-                  </div>
+                  <?= app_directory_grade_badge($r['grade'] ?? null, $state) ?>
+                  <span class="muted">score <?= e(app_directory_score_text($r['score_capped'] ?? null, $state)) ?></span><br>
+                  <span class="muted">
+                    H/M/L/I
+                    <?= e(app_directory_severity_value($r, 'high')) ?> /
+                    <?= e(app_directory_severity_value($r, 'med')) ?> /
+                    <?= e(app_directory_severity_value($r, 'low')) ?> /
+                    <?= e(app_directory_severity_value($r, 'info')) ?>
+                  </span><br>
+                  <?= source_state_chip($state) ?>
                 </td>
-                <td class="nowrap"><?= e(fmt_date($r['last_scanned'] ?? null) ?: '—') ?></td>
+                <td>
+                  <?php if ($dynamicRuns > 0): ?>
+                    <strong><?= e((string)$dynamicRuns) ?> run<?= $dynamicRuns === 1 ? '' : 's' ?></strong><br>
+                    <span class="muted">success / degraded / failed: <?= e((string)$dynamicSuccess) ?> / <?= e((string)$dynamicDegraded) ?> / <?= e((string)$dynamicFailed) ?></span><br>
+                    <span class="muted">quota-valid <?= e((string)($r['dynamic_quota_valid_runs'] ?? 0)) ?> • supplemental <?= e((string)($r['dynamic_supplemental_valid_runs'] ?? 0)) ?></span><br>
+                    <span class="muted">features ready <?= e((string)($r['dynamic_features_available_runs'] ?? 0)) ?> • static linked <?= e((string)($r['dynamic_static_linked_runs'] ?? 0)) ?></span>
+                  <?php else: ?>
+                    <span class="muted">No dynamic runs</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if ($dynamicRuns > 0): ?>
+                    domains <?= e((string)($r['dynamic_observed_domains'] ?? 0)) ?> observed /
+                    <?= e((string)($r['dynamic_root_domains'] ?? 0)) ?> root<br>
+                    <span class="muted">service and signal detail opens in the dynamic view</span><br>
+                    <?php if ($dynamicUrl): ?>
+                      <a href="<?= e($dynamicUrl) ?>">Open dynamic</a>
+                    <?php endif; ?>
+                  <?php else: ?>
+                    <span class="muted">No network context</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <span class="muted">static</span> <?= e(fmt_date_compact($r['last_scanned'] ?? null) ?: '—') ?><br>
+                  <?php if ($dynamicRuns > 0): ?>
+                    <span class="muted">dynamic</span> <?= e(fmt_date_compact($r['latest_dynamic_started_at'] ?? null) ?: '—') ?><br>
+                    <?php if ($latestDynamicUrl): ?>
+                      <a class="cell-clip" href="<?= e($latestDynamicUrl) ?>"><?= e($latestDynamicRunId) ?></a>
+                    <?php endif; ?>
+                  <?php else: ?>
+                    <span class="muted">dynamic —</span>
+                  <?php endif; ?>
+                </td>
               </tr>
             <?php };
             ?>
             <?php if (!empty($groupSearchResults)): ?>
               <tr class="table-group-row">
-                <td colspan="6">Primary analyzed apps</td>
+                <td colspan="5">Primary analyzed apps</td>
               </tr>
               <?php foreach ($analyzedRows as $r): $renderRow($r); endforeach; ?>
               <tr class="table-group-row">
-                <td colspan="6">Related catalog packages (inventory context only)</td>
+                <td colspan="5">Related catalog packages (inventory context only)</td>
               </tr>
               <?php foreach ($catalogOnlyRows as $r): $renderRow($r); endforeach; ?>
             <?php else: ?>

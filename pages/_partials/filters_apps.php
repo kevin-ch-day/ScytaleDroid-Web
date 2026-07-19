@@ -1,18 +1,14 @@
 <?php
 // pages/_partials/filters_apps.php
 // Expected variables (extracted by index.php):
-// $baseUrl, $q, $category, $size, $hasActiveFilters, $includeCatalogOnly
+// $baseUrl, $q, $category, $categoryOptions, $size, $hasActiveFilters, $includeCatalogOnly
 ?>
 
 <section class="panel" data-panel="filters">
   <div class="panel-header">
     <div>
       <h2 class="panel-title">Filters</h2>
-      <p class="panel-subtitle">Search by package, label, or category.</p>
-    </div>
-    <div class="panel-actions">
-      <span class="chip-density" data-density-indicator>Density: Standard</span>
-      <button type="button" class="panel-toggle" data-action="toggle-panel" aria-expanded="true">Collapse</button>
+      <p class="panel-subtitle">Search by package or label, then narrow by category if needed.</p>
     </div>
   </div>
   <div class="panel-body">
@@ -21,7 +17,12 @@
       <input id="filter-q" type="search" name="q" placeholder="Search package or label" value="<?= e($q ?? '') ?>" autocomplete="off">
 
       <label class="visually-hidden" for="filter-category">Category</label>
-      <input id="filter-category" type="text" name="category" placeholder="Category" value="<?= e($category ?? '') ?>">
+      <select id="filter-category" name="category" aria-label="Category">
+        <option value="">All categories</option>
+        <?php foreach ($categoryOptions as $opt): ?>
+          <option value="<?= e($opt) ?>" <?= $category === $opt ? 'selected' : '' ?>><?= e($opt) ?></option>
+        <?php endforeach; ?>
+      </select>
 
       <label class="visually-hidden" for="filter-size">Page size</label>
       <select id="filter-size" name="size" aria-label="Page size">
@@ -40,7 +41,7 @@
     </form>
 
     <p class="inline-hint">
-      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>. Default results prioritize analyzed apps; catalog-only rows are inventory context, not evidence of zero risk.
+      Wildcards like <code>%vpn%</code> work in search. Shortcut: <code>Ctrl/Cmd + K</code>. Catalog-only rows are inventory context, not evidence of zero risk.
     </p>
   </div>
 </section>

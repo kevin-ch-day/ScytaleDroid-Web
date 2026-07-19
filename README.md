@@ -41,7 +41,7 @@ assets/                 # CSS/JS and design tokens
 config/                 # Non-secret configuration (BASE_URL, pagination defaults)
 database/
   db_core/              # PDO engine & credentials (db_config.php consumed by db_engine.php)
-  db_lib/               # Query templates and feature functions
+  db_lib/               # Query loaders, query modules, and feature functions
 lib/                    # Shared helpers (guards, render, pager, layout)
 pages/                  # Route controllers (index, view_app, tabs, about)
 ```
@@ -49,8 +49,9 @@ pages/                  # Route controllers (index, view_app, tabs, about)
 ## Database Layer Pattern
 
 1. **`db_utils.php`** – shared helpers for executing queries, building filters, and pagination.
-2. **`db_queries.php`** – SQL string templates (no execution).
-3. **`db_func.php`** – feature functions that compose helpers + SQL and are consumed by pages.
+2. **`db_queries.php`** – compatibility loader for SQL string templates in `database/db_lib/db_queries/` (no execution).
+3. **Feature helper loaders** – files such as `db_app_reads.php`, `db_dynamic.php`, and `db_permission_intel.php` load focused helper modules from matching subdirectories.
+4. **`db_func.php`** – barrel include consumed by pages.
 
 Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call `db_func.php`, and render escaped output via `lib/render.php`.
 
@@ -68,19 +69,20 @@ Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call 
 
 ### Extending the UI
 
-1. Add SQL templates to `database/db_lib/db_queries.php` and expose feature helpers from `database/db_lib/db_func.php`.
+1. Add SQL templates to the relevant file under `database/db_lib/db_queries/` and expose feature helpers through the matching `database/db_lib/` helper loader.
 2. In new pages under `pages/`, guard request parameters via `lib/guards.php` and call the helpers in `db_func.php`.
 3. Render data with the utilities in `lib/render.php`, and use `lib/pager.php` for pagination.
 4. Keep the database as the source of truth. JSON/CSV artifacts should be linked or summarized only when they are not represented in first-class tables.
 
 ## Deployment Notes
 
-- Serve over HTTPS with standard security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`).
+- Serve over HTTPS with standard security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: same-origin`, `Permissions-Policy`, and HTTPS-only `Strict-Transport-Security`).
 - Run the application using a database account with **SELECT-only** permissions.
 - Do not expose the repository root directly without server-level deny rules. If the app remains under `/var/www/html/ScytaleDroid-Web`, install rules equivalent to `deploy/apache/ScytaleDroid-Web.conf`.
 - Do not rely on `.htaccess` unless Apache has `AllowOverride` enabled for this directory.
 - Keep `pages/diag.php` localhost-only by default; set `SCYTALEDROID_WEB_ENABLE_DIAG=1` only for trusted maintenance windows.
 - Rotate any credentials that were previously copied from local development defaults.
+- If you terminate TLS at a reverse proxy, set `SD_TRUST_PROXY_HEADERS=1` so HTTPS-aware headers and canonical URLs reflect the forwarded scheme/host safely.
 
 ## Roadmap Highlights
 

@@ -30,7 +30,12 @@
           </article>
           <article class="explore-card">
             <div class="app-primary">Dynamic Runtime</div>
-            <p class="table-subline"><?= e((string)($dynamicSummary['dynamic_runs'] ?? 0)) ?> runs available. Match level: package-level.</p>
+            <p class="table-subline">
+              <?= e((string)($dynamicSummary['dynamic_runs'] ?? 0)) ?> runs ·
+              <?= e((string)($dynamicSummary['quota_valid_runs'] ?? 0)) ?> quota-valid ·
+              <?= e((string)($dynamicSummary['supplemental_valid_runs'] ?? 0)) ?> supplemental ·
+              <?= e((string)($dynamicSummary['static_linked_runs'] ?? 0)) ?> static linked.
+            </p>
             <a class="btn-ghost" href="<?= e(url('pages/app_dynamic.php') . '?pkg=' . urlencode($packageName)) ?>">Open Dynamic</a>
           </article>
           <article class="explore-card">

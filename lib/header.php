@@ -34,16 +34,7 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
 
     <!-- No-JS fallback keeps nav visible -->
     <noscript>
-        <style>
-            [data-sidebar] {
-                transform: none !important;
-                opacity: 1 !important
-            }
-
-            [data-sidebar-toggle] {
-                display: none !important
-            }
-        </style>
+        <link rel="stylesheet" href="<?= e(asset_url('css/noscript.css')) ?>">
     </noscript>
 </head>
 

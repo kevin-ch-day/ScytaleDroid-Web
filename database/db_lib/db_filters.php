@@ -3,12 +3,12 @@
 require_once __DIR__ . '/db_utils.php';
 
 const _APPS_DIR_FILTERS = [
-    'category' => ['category = :category'],
+    'category' => ['dir.category = :category'],
     'q' => [
         '('
-        . 'CONVERT(package_name USING utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'CONVERT(dir.package_name USING utf8mb4) COLLATE utf8mb4_general_ci '
         . 'LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
-        . 'OR CONVERT(app_label USING utf8mb4) '
+        . 'OR CONVERT(dir.app_label USING utf8mb4) '
         . 'COLLATE utf8mb4_general_ci '
         . 'LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
         . ')',
@@ -19,17 +19,32 @@ const _APPS_DIR_FILTERS = [
 const _RUNTIME_RUN_FILTERS = [
     'q' => [
         '('
-        . 'CONVERT(package_name USING utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'CONVERT(rri.package_name USING utf8mb4) COLLATE utf8mb4_general_ci '
         . 'LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
-        . 'OR CONVERT(app_label USING utf8mb4) '
+        . 'OR CONVERT(rri.app_label USING utf8mb4) '
         . 'COLLATE utf8mb4_general_ci '
         . 'LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
-        . 'OR dynamic_run_id LIKE :q_run'
+        . 'OR rri.dynamic_run_id LIKE :q_run'
         . ')',
         'like',
     ],
-    'status' => ['LOWER(status) = LOWER(:status)'],
-    'tier' => ['LOWER(tier) = LOWER(:tier)'],
+    'status' => ['LOWER(rri.status) = LOWER(:status)'],
+    'tier' => ['LOWER(rri.tier) = LOWER(:tier)'],
+];
+
+const _DYNAMIC_COLLECTION_QUEUE_FILTERS = [
+    'q' => [
+        '('
+        . 'CONVERT(q.package_name USING utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'LIKE CAST(:q_pkg AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci '
+        . 'OR CONVERT(q.app_label USING utf8mb4) '
+        . 'COLLATE utf8mb4_general_ci '
+        . 'LIKE CAST(:q_label AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci'
+        . ')',
+        'like',
+    ],
+    'collection_status' => ['LOWER(q.collection_status) = LOWER(:collection_status)'],
+    'cohort_key' => ['LOWER(q.cohort_key) = LOWER(:cohort_key)'],
 ];
 
 const _FINDINGS_EXPLORER_FILTERS = [
@@ -149,6 +164,26 @@ function _component_exposure_where(array $filters): array
 {
     $map = [];
     foreach (_COMPONENT_EXPOSURE_FILTERS as $k => $tpl) {
+        $sql = $tpl[0] ?? '';
+        $xf = $tpl[1] ?? null;
+        if (is_string($xf)) {
+            $xf = _xf($xf);
+        }
+        $map[$k] = [$sql, $xf];
+    }
+    return sql_filters($filters, $map);
+}
+
+/**
+ * Build WHERE/params for dynamic collection queue filters.
+ *
+ * @param array<string,mixed> $filters
+ * @return array{0:string,1:array<string,mixed>}
+ */
+function _dynamic_collection_queue_where(array $filters): array
+{
+    $map = [];
+    foreach (_DYNAMIC_COLLECTION_QUEUE_FILTERS as $k => $tpl) {
         $sql = $tpl[0] ?? '';
         $xf = $tpl[1] ?? null;
         if (is_string($xf)) {

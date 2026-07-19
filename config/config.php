@@ -4,7 +4,7 @@
 // ── App identity ───────────────────────────────────────────────────────────────
 if (!defined('APP_NAME')) define('APP_NAME', 'ScytaleDroid');
 // Optional: app version for cache-busting (edit when you ship UI changes)
-if (!defined('APP_VERSION')) define('APP_VERSION', '0.2.0');
+if (!defined('APP_VERSION')) define('APP_VERSION', '0.2.1');
 if (!defined('TRUST_PROXY_HEADERS')) define('TRUST_PROXY_HEADERS', getenv('SD_TRUST_PROXY_HEADERS') === '1');
 
 // ── Base URL (subdirectory) ───────────────────────────────────────────────────
@@ -81,14 +81,26 @@ if (!function_exists('send_security_headers')) {
             return;
         }
 
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        if (TRUST_PROXY_HEADERS) {
+            $forwardedProto = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+            if ($forwardedProto === 'https') {
+                $https = true;
+            }
+        }
+
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: SAMEORIGIN');
         header('Referrer-Policy: same-origin');
+        header('Permissions-Policy: accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), fullscreen=(self)');
+        if ($https) {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        }
         header(
             "Content-Security-Policy: "
             . "default-src 'self'; "
             . "script-src 'self'; "
-            . "style-src 'self' 'unsafe-inline'; "
+            . "style-src 'self'; "
             . "object-src 'none'; "
             . "base-uri 'self'; "
             . "frame-ancestors 'self'; "
