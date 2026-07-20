@@ -35,6 +35,16 @@ function guard_search(?string $q): ?string
     return mb_substr($q, 0, 128);
 }
 
+/** Finding-group labels are query values, not unbounded free-form payloads. */
+function guard_finding_group_value(?string $value): ?string
+{
+    $value = guard_str($value);
+    if ($value === null) {
+        return null;
+    }
+    return mb_substr($value, 0, 256);
+}
+
 /** Optional: category – allow words, spaces, dashes, slashes */
 function guard_category(?string $c): ?string
 {

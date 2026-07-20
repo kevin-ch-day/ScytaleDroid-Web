@@ -7,6 +7,17 @@ function e($s): string
     return htmlspecialchars((string)($s ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * Log an internal failure without disclosing database or schema details to a
+ * browser. Pages can render the returned message directly.
+ */
+function page_error_message(string $surface, Throwable $error): string
+{
+    $label = trim($surface) !== '' ? trim($surface) : 'page';
+    error_log('[ScytaleDroid-Web] ' . $label . ' failed: ' . $error->getMessage());
+    return 'Data could not be loaded. Retry shortly or check the server logs.';
+}
+
 /** Format timestamp (YYYY-MM-DD HH:MM) if present */
 function fmt_date(?string $ts): string
 {
@@ -22,6 +33,70 @@ function fmt_date_compact(?string $ts): string
     if (!$ts) return '';
     $t = strtotime($ts);
     return $t ? date('n/j/Y g:i a', $t) : $ts;
+}
+
+function runtime_format_number($value, int $decimals = 1): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+    return number_format((float)$value, $decimals);
+}
+
+function runtime_format_percent($value): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+    return number_format(((float)$value) * 100, 1) . '%';
+}
+
+function runtime_format_bool($value): string
+{
+    if ($value === null || $value === '') {
+        return 'unknown';
+    }
+    return ((int)$value) === 1 ? 'yes' : 'no';
+}
+
+function runtime_format_csv($value): string
+{
+    $text = trim((string)($value ?? ''));
+    return $text === '' ? '-' : $text;
+}
+
+function runtime_csv_has($value, string $needle): bool
+{
+    $parts = array_map('trim', explode(',', strtolower((string)($value ?? ''))));
+    return in_array(strtolower($needle), $parts, true);
+}
+
+function runtime_baseline_class(array $run, bool $detailed = false): string
+{
+    $profile = strtolower(trim((string)($run['run_profile'] ?? '')));
+    if (!str_starts_with($profile, 'baseline')) {
+        return $detailed ? 'Not a baseline run' : 'not baseline';
+    }
+    if (((int)($run['baseline_not_idle'] ?? 0)) !== 1) {
+        return 'Strict Idle';
+    }
+    return $detailed
+        ? 'Quiescent FG (valid retained evidence outside Strict Idle quota)'
+        : 'QFG retained';
+}
+
+function runtime_qfg_reasons(array $run): string
+{
+    $raw = trim((string)($run['baseline_not_idle_reasons_json'] ?? ''));
+    if ($raw === '') {
+        return '—';
+    }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return '—';
+    }
+    $reasons = array_filter(array_map(static fn ($value): string => trim((string)$value), $decoded));
+    return $reasons === [] ? '—' : implode(', ', $reasons);
 }
 
 /** H/M/L (and optional I) compact string */
@@ -171,20 +246,6 @@ function source_state_hint(?string $state): string
     return (string)$meta['hint'];
 }
 
-function source_state_summary_text(?string $state): string
-{
-    $normalized = strtolower(trim((string)$state));
-    return match ($normalized) {
-        'catalog', 'catalog_only' => 'Not analyzed',
-        'static', 'static_findings' => 'Findings available',
-        'static+permission_audit', 'static_findings+risk' => 'Findings and risk available',
-        'static_findings+risk+permission_audit' => 'Findings, risk, and audit available',
-        'permission_audit', 'permission_audit_only' => 'Permission audit available',
-        'risk_score_only' => 'Risk score available',
-        default => 'Data state unknown',
-    };
-}
-
 function app_directory_grade_badge(?string $grade, ?string $sourceState): string
 {
     $state = strtolower(trim((string)$sourceState));
@@ -197,15 +258,6 @@ function app_directory_grade_badge(?string $grade, ?string $sourceState): string
 function app_directory_score_text($scoreCapped, ?string $sourceState): string
 {
     return score_display_meta(null, $scoreCapped, $sourceState)['normalized_score_text'];
-}
-
-function app_directory_hmli_text(array $row): string
-{
-    $state = strtolower(trim((string)($row['source_state'] ?? '')));
-    if (in_array($state, ['catalog', 'catalog_only'], true)) {
-        return 'Not analyzed';
-    }
-    return fmt_hml($row['high'] ?? 0, $row['med'] ?? 0, $row['low'] ?? 0, isset($row['info']) ? (int)$row['info'] : null);
 }
 
 function app_directory_severity_value(array $row, string $key): string
@@ -408,10 +460,10 @@ function runtime_technical_validity_meta(?string $state): array
         ],
         'TECH_LEGACY_UNKNOWN' => [
             'key' => 'TECH_LEGACY_UNKNOWN',
-            'label' => 'Legacy / unknown',
-            'short_label' => 'legacy',
+            'label' => 'Unevaluated historical',
+            'short_label' => 'historical',
             'tone' => 'muted',
-            'hint' => 'This run predates the current normalized validity-state model or has not been fully reclassified.',
+            'hint' => 'This retained historical run predates the current normalized validity-state model or has not been fully reclassified.',
         ],
         default => [
             'key' => $normalized !== '' ? $normalized : 'TECH_UNRESOLVED',
@@ -469,10 +521,10 @@ function runtime_quota_state_meta(?string $state): array
         ],
         'QUOTA_LEGACY_UNKNOWN' => [
             'key' => 'QUOTA_LEGACY_UNKNOWN',
-            'label' => 'Legacy / unknown',
-            'short_label' => 'legacy',
+            'label' => 'Unevaluated historical',
+            'short_label' => 'historical',
             'tone' => 'muted',
-            'hint' => 'This run predates the current quota-state model or has not been fully reclassified.',
+            'hint' => 'This retained historical run predates the current quota-state model or has not been fully reclassified.',
         ],
         default => [
             'key' => $normalized !== '' ? $normalized : 'QUOTA_UNRESOLVED',
@@ -502,7 +554,7 @@ function dynamic_evidence_quality_meta(array $summary): array
     $quotaValidRuns = (int)($summary['quota_valid_runs'] ?? 0);
     $supplementalRuns = (int)($summary['supplemental_valid_runs'] ?? 0);
     $invalidRuns = (int)($summary['invalid_or_skipped_runs'] ?? 0);
-    $legacyRuns = (int)($summary['legacy_or_unevaluated_runs'] ?? 0);
+    $unevaluatedHistoricalRuns = (int)($summary['unevaluated_historical_runs'] ?? 0);
     $staticLinkedRuns = (int)($summary['static_linked_runs'] ?? 0);
     $featuresAvailableRuns = (int)($summary['features_available_runs'] ?? 0);
 
@@ -555,11 +607,11 @@ function dynamic_evidence_quality_meta(array $summary): array
         ];
     }
 
-    if ($legacyRuns > 0 && ($quotaValidRuns + $supplementalRuns + $invalidRuns) <= 0) {
+    if ($unevaluatedHistoricalRuns > 0 && ($quotaValidRuns + $supplementalRuns + $invalidRuns) <= 0) {
         return [
-            'label' => 'Dynamic legacy only',
+            'label' => 'Dynamic historical only',
             'tone' => 'muted',
-            'summary' => $legacyRuns . ' historical runtime row(s) exist, but they are still legacy or unevaluated under the current model.',
+            'summary' => $unevaluatedHistoricalRuns . ' historical runtime row(s) exist, but they remain unevaluated under the current model.',
         ];
     }
 
@@ -652,12 +704,6 @@ function session_type_meta(?string $sessionStamp, ?string $profile = null): arra
     }
 
     return $meta;
-}
-
-function session_type_chip(?string $sessionStamp, ?string $profile = null): string
-{
-    $meta = session_type_meta($sessionStamp, $profile);
-    return chip($meta['label'], $meta['tone']);
 }
 
 function session_type_label(?string $sessionStamp, ?string $profile = null): string

@@ -24,8 +24,7 @@ try {
     $protectionBreakdown = permission_intel_protection_breakdown_for_session($selectedSession, 10);
     $sensitiveCombos = permission_intel_sensitive_combos_for_session($selectedSession, 10);
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] permission intelligence failed: ' . $e);
+    $errorMsg = page_error_message('permission intelligence', $e);
 }
 
 $surfaceMode = $selectedSession !== null ? 'session' : 'preferred';

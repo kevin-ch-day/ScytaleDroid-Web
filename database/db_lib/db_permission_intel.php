@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_permission_intel.php — compatibility loader for permission intelligence DB helpers.
+// database/db_lib/db_permission_intel.php — permission intelligence helper facade.
 
 require_once __DIR__ . '/db_queries.php';
 require_once __DIR__ . '/db_filters.php';

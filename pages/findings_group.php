@@ -8,7 +8,7 @@ $severityAllowed = ['critical', 'high', 'medium', 'low', 'info'];
 $appScopeAllowed = ['all', 'user_apps', 'system_oem_apps', 'google_apps'];
 
 $groupBy = guard_choice($_GET['group_by'] ?? null, $groupAllowed) ?? 'title';
-$groupValue = trim((string)($_GET['value'] ?? ''));
+$groupValue = guard_finding_group_value($_GET['value'] ?? null) ?? '';
 $severity = guard_choice($_GET['severity'] ?? null, $severityAllowed);
 $appScope = guard_choice($_GET['app_scope'] ?? null, $appScopeAllowed) ?? 'all';
 $includeSynthetic = isset($_GET['include_synthetic']) && $_GET['include_synthetic'] === '1';
@@ -37,8 +37,7 @@ if ($groupValue === '') {
         $apps = findings_group_detail_apps($groupBy, $groupValue, $severity, $category, $masvsArea, $detector, $sessionStamp, $scopeFilter, $includeSynthetic);
         $examples = findings_group_detail_examples($groupBy, $groupValue, $severity, $category, $masvsArea, $detector, $sessionStamp, $scopeFilter, $includeSynthetic);
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] findings group detail failed: ' . $e);
+        $errorMsg = page_error_message('findings group detail', $e);
     }
 }
 

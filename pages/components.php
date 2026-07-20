@@ -23,8 +23,7 @@ try {
     $rows = $pg['rows'] ?? [];
     $total = (int)($pg['total'] ?? 0);
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] components failed: ' . $e);
+    $errorMsg = page_error_message('components explorer', $e);
 }
 
 $baseUrl = PAGES_URL . '/components.php';

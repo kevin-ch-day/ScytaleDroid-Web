@@ -37,7 +37,8 @@ function build_app_report_payload(array $context): array
     $dynamicServiceSummary = [];
     $dynamicSignalSummary = [];
     $dynamicDomainContext = [];
-    $dbErrorDuringPayload = null;
+    $staticPayloadError = null;
+    $dynamicPayloadError = null;
 
     try {
         $findingSummary = app_findings_summary($packageName, $activeSession);
@@ -49,17 +50,21 @@ function build_app_report_payload(array $context): array
         $componentSummaryRow = app_component_summary($packageName, $activeSession);
         $fileProviders = app_fileproviders($packageName, $activeSession, 12);
         $providerAcl = app_provider_acl($packageName, $activeSession, 12);
+    } catch (Throwable $e) {
+        $staticPayloadError = page_error_message('app report static payload', $e);
+    }
+
+    try {
         $dynamicSummary = app_dynamic_summary($packageName);
         $dynamicRuns = app_dynamic_runs($packageName, 5);
         $dynamicServiceSummary = app_dynamic_service_summary($packageName, 5);
         $dynamicSignalSummary = app_dynamic_signal_summary($packageName, 5);
         $dynamicDomainContext = app_dynamic_domain_context($packageName, 8);
     } catch (Throwable $e) {
-        $dbErrorDuringPayload = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app report payload failed: ' . $e);
+        $dynamicPayloadError = page_error_message('app report dynamic payload', $e);
     }
 
-    if ($dbErrorDuringPayload === null) {
+    if ($staticPayloadError === null) {
         $reportSummaryRow = array_merge(
             is_array($asr) ? $asr : [],
             is_array($findingSummary) ? $findingSummary : [],
@@ -287,7 +292,8 @@ function build_app_report_payload(array $context): array
     $scoreDrivers = array_slice($scoreDrivers, 0, 4);
 
     return [
-        'dbErrorDuringPayload' => $dbErrorDuringPayload,
+        'staticPayloadError' => $staticPayloadError,
+        'dynamicPayloadError' => $dynamicPayloadError,
         'findingSummary' => $findingSummary,
         'reportSummaryRow' => $reportSummaryRow,
         'topFindings' => $topFindings,

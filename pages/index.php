@@ -20,8 +20,7 @@ try {
     $recurringFindings = fleet_recurring_findings(10);
     $runtimeOverview = runtime_deviation_overview();
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] dashboard failed: ' . $e);
+    $errorMsg = page_error_message('dashboard', $e);
 }
 
 $PAGE_TITLE = 'Home';
@@ -85,7 +84,7 @@ require_once __DIR__ . '/../lib/header.php';
                     <div class="metric-card">
                         <span class="metric-label">Dynamic Runs</span>
                         <span class="metric-value"><?= e((string)($runtimeOverview['dynamic_runs'] ?? 0)) ?></span>
-                        <p class="muted">Packages <?= e((string)($runtimeOverview['dynamic_packages'] ?? 0)) ?> • Legacy / unknown <?= e((string)($runtimeOverview['legacy_or_unevaluated_runs'] ?? 0)) ?></p>
+                        <p class="muted">Packages <?= e((string)($runtimeOverview['dynamic_packages'] ?? 0)) ?> • Unevaluated historical <?= e((string)($runtimeOverview['unevaluated_historical_runs'] ?? 0)) ?></p>
                     </div>
                     <div class="metric-card">
                         <span class="metric-label">Quota-valid Runs</span>

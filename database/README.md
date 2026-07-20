@@ -70,7 +70,11 @@ Adjust index names to match your organisation’s conventions.
 ## Connection Expectations
 
 - Database user must have **SELECT** on the tables/views listed above.
-- No persistent write access is required. Some high-volume read pages use connection-local `CREATE TEMPORARY TABLE` surfaces plus short file-backed caches to avoid repeatedly scanning expensive views; grant temporary-table capability if your MariaDB/MySQL policy separates it from ordinary session privileges.
+- No persistent write access is required. Some high-volume read pages can use
+  connection-local `CREATE TEMPORARY TABLE` surfaces plus short file-backed
+  caches to avoid repeatedly scanning expensive views. This optimization is
+  disabled by default; set `SCYTALEDROID_WEB_ENABLE_TEMP_TABLES=1` only when
+  the MariaDB/MySQL account is intentionally granted temporary-table capability.
 - Character set should be `utf8mb4`.
 
 ### Environment overrides
@@ -88,7 +92,7 @@ You can override any setting at runtime with environment variables before Apache
 | `SCYTALEDROID_DB_SOCKET` | Path to a Unix socket (skips host/port). |
 | `SCYTALEDROID_DB_NAME` | Database/schema name. |
 | `SCYTALEDROID_DB_USER` | Database user. |
-| `SCYTALEDROID_DB_PASS` | Database password (also accepts **`SCYTALEDROID_DB_PASSWD`** — same as Python analyst tooling). |
+| `SCYTALEDROID_DB_PASSWD` | Canonical database password variable. `SCYTALEDROID_DB_PASS` is accepted only as a legacy fallback. |
 | `SCYTALEDROID_DB_CHARSET` | Optional charset (defaults to `utf8mb4`). |
 | `SCYTALEDROID_DB_DSN` | Full PDO DSN, if you need complete manual control. |
 
@@ -165,12 +169,12 @@ GROUP BY link_state;
 
 If any query returns zero rows, the UI will show empty states. Populate the data pipeline before rolling out ScytaleDroid-Web.
 
-## Legacy debt and roadmap (Web)
+## Historical Compatibility Boundaries
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| **`runs` table** | Retired from Web diagnostics | Static legacy mirror. The Web diagnostic page now reports this surface as retired instead of querying it live. |
-| **`dynamic_sessions` direct reads** | Compatibility only | Web runtime pages should prefer `v_web_runtime_run_index` / `v_web_runtime_run_detail`, which inherit normalized validity and quota semantics from `v_dynamic_run_context_v1`. Web-facing runtime summaries now center `technical_validity_state` and `quota_state` instead of `countable` / `valid_dataset_run`. |
+| **`runs` table** | Not consumed by Web diagnostics | Historical static mirror retained outside current Web read models. |
+| **`dynamic_sessions` direct reads** | Detail-view source only | Web runtime indexes use `v_web_runtime_run_index`; detailed run pages use `v_web_runtime_run_detail`, which inherit normalized validity and quota semantics from `v_dynamic_run_context_v1`. |
 | **`static_findings_summary` bridge** | Centralized in repo-owned Web views | PHP query helpers should consume `v_web_app_report_summary.details_json` / `v_web_app_string_summary.findings_details` instead of naming `static_findings_summary` directly. |
 | **Dynamic ↔ static handoff** | Research / ops | Use analyst `report_dynamic_static_alignment.py` (Python repo); Web shows `static_link_state` on runtime index only. |
-| **Password env naming** | Resolved in code | `db_engine.php` accepts `SCYTALEDROID_DB_PASS` **or** `SCYTALEDROID_DB_PASSWD`. |
+| **Password env naming** | Canonicalized | `db_engine.php` prefers `SCYTALEDROID_DB_PASSWD`; `SCYTALEDROID_DB_PASS` remains a legacy fallback. |

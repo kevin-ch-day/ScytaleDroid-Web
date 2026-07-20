@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_queries.php — compatibility loader for SQL query constants.
+// database/db_lib/db_queries.php — SQL query constant facade.
 //
 // Keep page/domain modules requiring this file. Query text lives in smaller
 // domain files under database/db_lib/db_queries/ so SQL changes stay reviewable.

@@ -48,19 +48,3 @@ function app_component_summary(string $packageName, string $sessionStamp): ?arra
         );
     });
 }
-
-/**
- * @return array<string,mixed>|null
- */
-function app_report_summary(string $packageName, string $sessionStamp): ?array
-{
-    return web_cache_remember("app_report_summary_v1_" . sha1($packageName . '|' . $sessionStamp), 120, static function () use ($packageName, $sessionStamp): ?array {
-        return db_one(
-            SQL_APP_REPORT_SUMMARY,
-            [
-                'pkg_report_summary' => $packageName,
-                'session_report_summary' => $sessionStamp,
-            ]
-        );
-    });
-}

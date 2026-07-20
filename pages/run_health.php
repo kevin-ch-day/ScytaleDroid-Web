@@ -16,8 +16,7 @@ try {
     $sessions = static_session_health(40, $sessionFilter, $typeFilter, $includeHidden);
     $filterOptions = static_session_filter_options(60, true);
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] run health failed: ' . $e);
+    $errorMsg = page_error_message('run health', $e);
 }
 
 $baseUrl = PAGES_URL . '/run_health.php';

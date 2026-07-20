@@ -2,6 +2,9 @@
 
 A read-only LAMP UI for exploring ScytaleDroid analysis results stored in MariaDB/MySQL.
 
+The Web release cache-buster is kept in `config/config.php` and should match the
+Core release version in `scytaledroid/Config/version.py` when the two are deployed together.
+
 ## Goals
 
 - App-first navigation: list Android apps, drill into an app, then review Findings, Strings, and Permissions.
@@ -13,7 +16,6 @@ A read-only LAMP UI for exploring ScytaleDroid analysis results stored in MariaD
 
 - Authentication or role management.
 - Write operations or pipeline administration.
-- Write operations or pipeline control.
 - Advanced charts or interactive runtime visualizations.
 
 ## Quickstart
@@ -22,6 +24,11 @@ A read-only LAMP UI for exploring ScytaleDroid analysis results stored in MariaD
    - PHP 8.1+ with `pdo_mysql` (mysqlnd).
    - Web server (Apache/Nginx) configured to serve the project root.
    - MariaDB/MySQL instance populated with ScytaleDroid data.
+   - On Fedora, run `./setup.sh` to install the required Apache/PHP packages.
+     Set `SCYTALEDROID_WEB_ROOT=/srv/www` first if `/var/www/html` is not the target web root.
+   - Before an installation or handoff, run `./setup.sh --check`. It makes no
+     system changes and verifies Fedora packages, `pdo_mysql`, the web root,
+     and the committed Apache hardening include.
 2. **Configuration**
    - Prefer environment variables for database credentials.
    - For local development, copy `database/db_core/db_config.example.php` to `database/db_core/db_config.php`; the local file is intentionally ignored by Git.
@@ -43,14 +50,14 @@ database/
   db_core/              # PDO engine & credentials (db_config.php consumed by db_engine.php)
   db_lib/               # Query loaders, query modules, and feature functions
 lib/                    # Shared helpers (guards, render, pager, layout)
-pages/                  # Route controllers (index, view_app, tabs, about)
+pages/                  # Canonical route controllers, app reports, runtime views, and redirects
 ```
 
 ## Database Layer Pattern
 
 1. **`db_utils.php`** – shared helpers for executing queries, building filters, and pagination.
-2. **`db_queries.php`** – compatibility loader for SQL string templates in `database/db_lib/db_queries/` (no execution).
-3. **Feature helper loaders** – files such as `db_app_reads.php`, `db_dynamic.php`, and `db_permission_intel.php` load focused helper modules from matching subdirectories.
+2. **`db_queries.php`** – SQL-query facade for templates in `database/db_lib/db_queries/` (no execution).
+3. **Feature helper facades** – files such as `db_app_reads.php`, `db_dynamic.php`, and `db_permission_intel.php` load focused helper modules from matching subdirectories.
 4. **`db_func.php`** – barrel include consumed by pages.
 
 Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call `db_func.php`, and render escaped output via `lib/render.php`.
@@ -78,11 +85,18 @@ Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call 
 
 - Serve over HTTPS with standard security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: same-origin`, `Permissions-Policy`, and HTTPS-only `Strict-Transport-Security`).
 - Run the application using a database account with **SELECT-only** permissions.
+  `SCYTALEDROID_WEB_ENABLE_TEMP_TABLES=1` is an optional performance setting for
+  deployments that intentionally grant `CREATE TEMPORARY TABLES`; it is off by default.
 - Do not expose the repository root directly without server-level deny rules. If the app remains under `/var/www/html/ScytaleDroid-Web`, install rules equivalent to `deploy/apache/ScytaleDroid-Web.conf`.
 - Do not rely on `.htaccess` unless Apache has `AllowOverride` enabled for this directory.
-- Keep `pages/diag.php` localhost-only by default; set `SCYTALEDROID_WEB_ENABLE_DIAG=1` only for trusted maintenance windows.
+- Keep `pages/diag.php` localhost-only by default. Remote diagnostics require both
+  `SCYTALEDROID_WEB_ENABLE_DIAG=1` and a matching `X-ScytaleDroid-Diag-Token`
+  header for `SCYTALEDROID_WEB_DIAG_TOKEN`.
 - Rotate any credentials that were previously copied from local development defaults.
-- If you terminate TLS at a reverse proxy, set `SD_TRUST_PROXY_HEADERS=1` so HTTPS-aware headers and canonical URLs reflect the forwarded scheme/host safely.
+- Set `SD_APP_ORIGIN=https://your-host.example` for canonical URLs. The UI does
+  not derive canonical URLs from request Host headers. If you terminate TLS at a
+  reverse proxy, set `SD_TRUST_PROXY_HEADERS=1` only when that proxy sanitizes
+  forwarded headers so HTTPS-aware security headers remain correct.
 
 ## Roadmap Highlights
 

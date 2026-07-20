@@ -1,6 +1,7 @@
 <?php
 // lib/app_detail.php
 require_once __DIR__ . '/guards.php';
+require_once __DIR__ . '/render.php';
 require_once __DIR__ . '/../database/db_lib/db_func.php';
 
 /**
@@ -47,8 +48,7 @@ function load_app_detail_context(?string $packageRaw, ?string $sessionRaw): arra
         $context['app'] = app_overview($packageName);
         $context['sessions'] = app_sessions($packageName, 24);
     } catch (Throwable $e) {
-        $context['error'] = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app detail context failed: ' . $e);
+        $context['error'] = page_error_message('app detail context', $e);
         return $context;
     }
 

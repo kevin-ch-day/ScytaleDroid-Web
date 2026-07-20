@@ -46,7 +46,7 @@ function fleet_recurring_findings(int $limit = 10): array
  */
 function runtime_deviation_overview(): array
 {
-    return web_cache_remember('runtime_deviation_overview_v5', 60, static function (): array {
+    return web_cache_remember('runtime_deviation_overview_v6', 60, static function (): array {
         return db_one(SQL_RUNTIME_OVERVIEW) ?? [];
     });
 }

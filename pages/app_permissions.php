@@ -37,8 +37,7 @@ if ($packageName && $activeSession && !$errorMsg) {
             }
         }
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app permissions failed: ' . $e);
+        $errorMsg = page_error_message('app permissions', $e);
     }
 }
 

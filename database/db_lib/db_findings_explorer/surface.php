@@ -6,6 +6,10 @@ function _findings_explorer_surface_table(): string
     static $tableName = null;
     static $available = null;
 
+    if (!web_temp_tables_enabled()) {
+        return 'v_web_app_findings';
+    }
+
     if ($available === false) {
         return 'v_web_app_findings';
     }

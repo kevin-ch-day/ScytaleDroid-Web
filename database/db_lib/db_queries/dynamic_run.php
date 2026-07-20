@@ -20,6 +20,8 @@ SELECT
   tier,
   technical_validity_state,
   quota_state,
+  baseline_not_idle,
+  baseline_not_idle_reasons_json,
   cohort_eligibility_state,
   feature_state,
   static_link_state,

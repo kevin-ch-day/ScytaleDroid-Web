@@ -21,8 +21,10 @@ $__sidebar = __DIR__ . '/sidebar_navigation.php';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title><?= e($__title) ?></title>
 
-    <!-- Canonical + theme color (nice-to-have) -->
+    <!-- Canonical URLs require the trusted SD_APP_ORIGIN deployment setting. -->
+    <?php if (APP_ORIGIN !== ''): ?>
     <link rel="canonical" href="<?= e($__canonical) ?>">
+    <?php endif; ?>
     <meta name="theme-color" content="#0e1116">
 
     <!-- Stylesheets (cache-busted via APP_VERSION) -->

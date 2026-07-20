@@ -27,45 +27,44 @@ if ($runId !== null) {
             $regimes = dynamic_run_risk_regimes($runId, 40);
         }
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] dynamic run detail failed: ' . $e);
+        $errorMsg = page_error_message('dynamic run detail', $e);
     }
 }
 
+/** Page-local aliases preserve template readability; rendering behavior lives in lib/render.php. */
 function fmt_run_number($value, int $decimals = 1): string
 {
-    if ($value === null || $value === '') {
-        return '-';
-    }
-    return number_format((float)$value, $decimals);
+    return runtime_format_number($value, $decimals);
 }
 
 function fmt_run_pct($value): string
 {
-    if ($value === null || $value === '') {
-        return '-';
-    }
-    return number_format(((float)$value) * 100, 1) . '%';
+    return runtime_format_percent($value);
 }
 
 function fmt_run_bool($value): string
 {
-    if ($value === null || $value === '') {
-        return 'unknown';
-    }
-    return ((int)$value) === 1 ? 'yes' : 'no';
+    return runtime_format_bool($value);
 }
 
 function fmt_run_csv($value): string
 {
-    $text = trim((string)($value ?? ''));
-    return $text === '' ? '-' : $text;
+    return runtime_format_csv($value);
+}
+
+function run_baseline_class(array $run): string
+{
+    return runtime_baseline_class($run, true);
+}
+
+function run_baseline_reasons(array $run): string
+{
+    return runtime_qfg_reasons($run);
 }
 
 function run_csv_has($value, string $needle): bool
 {
-    $parts = array_map('trim', explode(',', strtolower((string)($value ?? ''))));
-    return in_array(strtolower($needle), $parts, true);
+    return runtime_csv_has($value, $needle);
 }
 
 $domainCount = count($domainContext);
@@ -74,10 +73,10 @@ $thirdPartyDomainCount = 0;
 $domainHitCount = 0;
 foreach ($domainContext as $row) {
     $domainHitCount += (int)($row['total_indicator_hits'] ?? 0);
-    if (((int)($row['is_first_party'] ?? 0)) === 1 || run_csv_has($row['owner_classes_csv'] ?? '', 'first_party')) {
+    if (((int)($row['is_first_party'] ?? 0)) === 1 || runtime_csv_has($row['owner_classes_csv'] ?? '', 'first_party')) {
         $firstPartyDomainCount++;
     }
-    if (run_csv_has($row['owner_classes_csv'] ?? '', 'third_party')) {
+    if (runtime_csv_has($row['owner_classes_csv'] ?? '', 'third_party')) {
         $thirdPartyDomainCount++;
     }
 }
@@ -152,6 +151,10 @@ require_once __DIR__ . '/../lib/header.php';
           <div><dt>PCAP</dt><dd><?= e(fmt_run_bool($run['pcap_valid'] ?? null)) ?> · <?= e(fmt_run_number($run['pcap_bytes'] ?? null, 0)) ?> bytes</dd></div>
           <div><dt>Technical Validity</dt><dd><?= runtime_technical_validity_chip((string)($run['technical_validity_state'] ?? '')) ?></dd></div>
           <div><dt>Quota State</dt><dd><?= runtime_quota_state_chip((string)($run['quota_state'] ?? '')) ?></dd></div>
+          <div><dt>Baseline Class</dt><dd><?= e(run_baseline_class($run)) ?></dd></div>
+          <?php if (((int)($run['baseline_not_idle'] ?? 0)) === 1): ?>
+            <div><dt>QFG Reasons</dt><dd><?= e(run_baseline_reasons($run)) ?></dd></div>
+          <?php endif; ?>
           <div><dt>Cohort Eligibility</dt><dd><?= e((string)($run['cohort_eligibility_state'] ?? 'COHORT_NOT_EVALUATED')) ?></dd></div>
           <div><dt>Feature State</dt><dd><?= runtime_feature_state_chip($featureState) ?></dd></div>
           <div><dt>Static Link</dt><dd><?= runtime_static_link_state_chip($staticLinkState) ?></dd></div>

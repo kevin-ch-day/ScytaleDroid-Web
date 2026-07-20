@@ -30,34 +30,27 @@ try {
     $rows = $pg['rows'] ?? [];
     $total = (int)($pg['total'] ?? 0);
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] runtime deviation failed: ' . $e);
+    $errorMsg = page_error_message('runtime deviation', $e);
 }
 
 $baseUrl = PAGES_URL . '/dynamic.php';
 $persist = ['q' => $q, 'status' => $status, 'tier' => $tier, 'size' => $size];
 $filtered = array_filter(['q' => $q, 'status' => $status, 'tier' => $tier], fn($v) => $v !== null && $v !== '');
 
+/** Page-local aliases preserve template readability; rendering behavior lives in lib/render.php. */
 function fmt_rate($value, int $decimals = 2): string
 {
-    if ($value === null || $value === '') {
-        return '-';
-    }
-    return number_format((float)$value, $decimals);
+    return runtime_format_number($value, $decimals);
 }
 
 function fmt_bool_label($value): string
 {
-    if ($value === null || $value === '') {
-        return 'unknown';
-    }
-    return ((int)$value) === 1 ? 'yes' : 'no';
+    return runtime_format_bool($value);
 }
 
 function fmt_dynamic_page_csv($value): string
 {
-    $text = trim((string)($value ?? ''));
-    return $text === '' ? '-' : $text;
+    return runtime_format_csv($value);
 }
 
 $PAGE_TITLE = 'Runtime Deviation';
@@ -73,7 +66,7 @@ require_once __DIR__ . '/../lib/header.php';
     <div class="panel-header">
       <div>
         <h1 class="panel-title">Runtime Deviation</h1>
-        <p class="panel-subtitle">Baseline-relative dynamic behavior from persisted runs, network features, cohorts, and risk regimes.</p>
+        <p class="panel-subtitle">Governed runtime evidence, including Strict Idle, Quiescent FG, raw interactive runs, network features, service context, and risk regimes.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -82,7 +75,8 @@ require_once __DIR__ . '/../lib/header.php';
         <div class="metric-card"><span class="metric-label">Packages</span><span class="metric-value"><?= e((string)($overview['dynamic_packages'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Success / Degraded / Failed</span><span class="metric-value"><?= e((string)($overview['successful_runs'] ?? 0)) ?> / <?= e((string)($overview['degraded_runs'] ?? 0)) ?> / <?= e((string)($overview['failed_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Quota-valid / Supplemental</span><span class="metric-value"><?= e((string)($overview['quota_valid_runs'] ?? 0)) ?> / <?= e((string)($overview['supplemental_valid_runs'] ?? 0)) ?></span></div>
-        <div class="metric-card"><span class="metric-label">Invalid / Legacy / unknown</span><span class="metric-value"><?= e((string)($overview['invalid_or_skipped_runs'] ?? 0)) ?> / <?= e((string)($overview['legacy_or_unevaluated_runs'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Strict Idle / QFG / Interactive</span><span class="metric-value"><?= e((string)($overview['strict_idle_runs'] ?? 0)) ?> / <?= e((string)($overview['quiescent_fg_runs'] ?? 0)) ?> / <?= e((string)($overview['interactive_raw_runs'] ?? 0)) ?></span></div>
+        <div class="metric-card"><span class="metric-label">Invalid / Unevaluated historical</span><span class="metric-value"><?= e((string)($overview['invalid_or_skipped_runs'] ?? 0)) ?> / <?= e((string)($overview['unevaluated_historical_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Static Linked / Missing Link</span><span class="metric-value"><?= e((string)($overview['static_linked_runs'] ?? 0)) ?> / <?= e((string)($overview['missing_static_link_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Features Ready / Missing</span><span class="metric-value"><?= e((string)($overview['features_available_runs'] ?? 0)) ?> / <?= e((string)($overview['missing_feature_runs'] ?? 0)) ?></span></div>
         <div class="metric-card"><span class="metric-label">Indicators / Issues</span><span class="metric-value"><?= e((string)($overview['indicator_rows'] ?? 0)) ?> / <?= e((string)($overview['issue_rows'] ?? 0)) ?></span></div>

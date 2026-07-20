@@ -192,9 +192,24 @@ FROM (
       (SELECT COUNT(*) FROM static_analysis_findings f WHERE f.run_id = base.static_run_id AND LOWER(COALESCE(f.severity, '')) = 'low') AS low,
       (SELECT COUNT(*) FROM static_analysis_findings f WHERE f.run_id = base.static_run_id AND LOWER(COALESCE(f.severity, '')) = 'info') AS info,
       (SELECT COUNT(*) FROM static_permission_matrix pm WHERE pm.run_id = base.static_run_id) AS permission_rows,
-      COALESCE((SELECT MAX(ss.high_entropy) FROM static_string_summary ss WHERE ss.package_name = base.package_name AND ss.session_stamp = base.session_stamp), 0) AS high_entropy,
-      COALESCE((SELECT MAX(ss.endpoints) FROM static_string_summary ss WHERE ss.package_name = base.package_name AND ss.session_stamp = base.session_stamp), 0) AS endpoints,
-      COALESCE((SELECT COUNT(*) FROM static_string_summary ss WHERE ss.package_name = base.package_name AND ss.session_stamp = base.session_stamp), 0) AS string_rows,
+      COALESCE((
+        SELECT MAX(ss.high_entropy)
+        FROM static_string_summary ss
+        WHERE CONVERT(ss.package_name USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.package_name USING utf8mb4) COLLATE utf8mb4_general_ci
+          AND CONVERT(ss.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci
+      ), 0) AS high_entropy,
+      COALESCE((
+        SELECT MAX(ss.endpoints)
+        FROM static_string_summary ss
+        WHERE CONVERT(ss.package_name USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.package_name USING utf8mb4) COLLATE utf8mb4_general_ci
+          AND CONVERT(ss.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci
+      ), 0) AS endpoints,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM static_string_summary ss
+        WHERE CONVERT(ss.package_name USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.package_name USING utf8mb4) COLLATE utf8mb4_general_ci
+          AND CONVERT(ss.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci = CONVERT(base.session_stamp USING utf8mb4) COLLATE utf8mb4_general_ci
+      ), 0) AS string_rows,
       (SELECT MAX(pa.grade) FROM permission_audit_apps pa WHERE pa.static_run_id = base.static_run_id) AS grade,
       (SELECT MAX(pa.score_capped) FROM permission_audit_apps pa WHERE pa.static_run_id = base.static_run_id) AS score_capped,
       (SELECT MAX(pas.created_at) FROM permission_audit_apps pa JOIN permission_audit_snapshots pas ON pas.snapshot_id = pa.snapshot_id WHERE pa.static_run_id = base.static_run_id) AS audit_created_at,
@@ -218,7 +233,8 @@ FROM (
       FROM static_analysis_runs sar
       JOIN app_versions av ON av.id = sar.app_version_id
       JOIN apps a ON a.id = av.app_id
-      WHERE a.package_name = :pkg_runs
+      WHERE CONVERT(a.package_name USING utf8mb4) COLLATE utf8mb4_general_ci =
+            CAST(:pkg_runs AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci
     ) base
   ) metrics
 ) ranked
@@ -401,57 +417,5 @@ SELECT
 FROM v_web_app_component_summary
 WHERE package_name = :pkg_component_summary
   AND session_stamp = :session_component_summary
-LIMIT 1
-SQL;
-
-const SQL_APP_REPORT_SUMMARY = <<<SQL
-SELECT
-  package_name,
-  static_run_id,
-  session_stamp,
-  created_at,
-  run_status,
-  profile,
-  session_type_key,
-  session_type_label,
-  session_hidden_by_default,
-  session_usability,
-  is_usable_complete,
-  non_canonical_reasons,
-  grade,
-  score_capped,
-  audit_created_at,
-  audit_rows,
-  link_rows,
-  findings_total,
-  high,
-  med,
-  low,
-  info,
-  permission_rows,
-  dangerous_count,
-  signature_count,
-  privileged_count,
-  special_access_count,
-  custom_count,
-  string_rows,
-  endpoints,
-  http_cleartext,
-  api_keys,
-  analytics_ids,
-  cloud_refs,
-  ipc,
-  uris,
-  flags,
-  certs,
-  high_entropy,
-  details_json,
-  providers,
-  exported_providers,
-  weak_provider_guards,
-  acl_rows
-FROM v_web_app_report_summary
-WHERE package_name = :pkg_report_summary
-  AND session_stamp = :session_report_summary
 LIMIT 1
 SQL;

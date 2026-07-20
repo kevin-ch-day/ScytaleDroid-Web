@@ -29,37 +29,34 @@ if ($packageName && !$errorMsg) {
         $serviceSummary = app_dynamic_service_summary($packageName, 80);
         $signalSummary = app_dynamic_signal_summary($packageName, 60);
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app dynamic failed: ' . $e);
+        $errorMsg = page_error_message('app dynamic', $e);
     }
 }
 
+/** Page-local aliases preserve template readability; rendering behavior lives in lib/render.php. */
 function fmt_dynamic_number($value, int $decimals = 1): string
 {
-    if ($value === null || $value === '') {
-        return '-';
-    }
-    return number_format((float)$value, $decimals);
+    return runtime_format_number($value, $decimals);
 }
 
 function fmt_dynamic_bool($value): string
 {
-    if ($value === null || $value === '') {
-        return 'unknown';
-    }
-    return ((int)$value) === 1 ? 'yes' : 'no';
+    return runtime_format_bool($value);
 }
 
 function fmt_dynamic_csv($value): string
 {
-    $text = trim((string)($value ?? ''));
-    return $text === '' ? '-' : $text;
+    return runtime_format_csv($value);
+}
+
+function dynamic_baseline_class(array $row): string
+{
+    return runtime_baseline_class($row);
 }
 
 function dynamic_csv_has($value, string $needle): bool
 {
-    $parts = array_map('trim', explode(',', strtolower((string)($value ?? ''))));
-    return in_array(strtolower($needle), $parts, true);
+    return runtime_csv_has($value, $needle);
 }
 
 /**
@@ -94,10 +91,10 @@ $rootDomainCount = dynamic_distinct_count($domainContext, 'root_domain');
 $firstPartyDomainCount = 0;
 $thirdPartyDomainCount = 0;
 foreach ($domainContext as $row) {
-    if (((int)($row['is_first_party'] ?? 0)) === 1 || dynamic_csv_has($row['owner_classes_csv'] ?? '', 'first_party')) {
+    if (((int)($row['is_first_party'] ?? 0)) === 1 || runtime_csv_has($row['owner_classes_csv'] ?? '', 'first_party')) {
         $firstPartyDomainCount++;
     }
-    if (dynamic_csv_has($row['owner_classes_csv'] ?? '', 'third_party')) {
+    if (runtime_csv_has($row['owner_classes_csv'] ?? '', 'third_party')) {
         $thirdPartyDomainCount++;
     }
 }
@@ -140,7 +137,8 @@ require_once __DIR__ . '/../lib/header.php';
           <div class="metric-card"><span class="metric-label">Dynamic Runs</span><span class="metric-value"><?= e((string)($summary['dynamic_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Success / Degraded / Failed</span><span class="metric-value"><?= e((string)($summary['successful_runs'] ?? 0)) ?> / <?= e((string)($summary['degraded_runs'] ?? 0)) ?> / <?= e((string)($summary['failed_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Quota-valid / Supplemental</span><span class="metric-value"><?= e((string)($summary['quota_valid_runs'] ?? 0)) ?> / <?= e((string)($summary['supplemental_valid_runs'] ?? 0)) ?></span></div>
-          <div class="metric-card"><span class="metric-label">Invalid / Legacy / unknown</span><span class="metric-value"><?= e((string)($summary['invalid_or_skipped_runs'] ?? 0)) ?> / <?= e((string)($summary['legacy_or_unevaluated_runs'] ?? 0)) ?></span></div>
+          <div class="metric-card"><span class="metric-label">QFG retained</span><span class="metric-value"><?= e((string)($summary['quiescent_fg_runs'] ?? 0)) ?></span></div>
+          <div class="metric-card"><span class="metric-label">Invalid / Unevaluated historical</span><span class="metric-value"><?= e((string)($summary['invalid_or_skipped_runs'] ?? 0)) ?> / <?= e((string)($summary['unevaluated_historical_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Static Linked / Missing Link</span><span class="metric-value"><?= e((string)($summary['static_linked_runs'] ?? 0)) ?> / <?= e((string)($summary['missing_static_link_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Features Ready / Missing</span><span class="metric-value"><?= e((string)($summary['features_available_runs'] ?? 0)) ?> / <?= e((string)($summary['missing_feature_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Latest Run</span><span class="metric-value"><?= e(fmt_date((string)($summary['latest_started_at'] ?? ''))) ?></span></div>
@@ -320,6 +318,7 @@ require_once __DIR__ . '/../lib/header.php';
                   <th>Run</th>
                   <th>Status</th>
                   <th>Profile</th>
+                  <th>Baseline class</th>
                   <th>Started</th>
                   <th>Network</th>
                   <th>Evidence</th>
@@ -345,6 +344,7 @@ require_once __DIR__ . '/../lib/header.php';
                       <span class="muted"><?= e((string)($row['tier'] ?? 'unknown')) ?></span>
                     </td>
                     <td><?= e($profile) ?></td>
+                    <td><?= e(dynamic_baseline_class($row)) ?></td>
                     <td><?= e(fmt_date((string)($row['started_at_utc'] ?? ''))) ?></td>
                     <td>
                       packets <?= e(fmt_dynamic_number($row['packet_count'] ?? null, 0)) ?>,

@@ -30,8 +30,7 @@ try {
         $rawProbe = apps_directory_probe(10);
     }
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] apps failed: ' . $e);
+    $errorMsg = page_error_message('apps directory', $e);
 }
 
 $hasActiveFilters = $q !== null || $category !== null || !$includeCatalogOnly;

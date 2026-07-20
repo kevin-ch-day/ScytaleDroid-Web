@@ -2,22 +2,31 @@
 // database/db_lib/db_queries/static_health_diag.php — Static session health and diagnostics query constants.
 
 const SQL_STATIC_SESSION_HEALTH_BASE = <<<SQL
+SELECT *
+FROM (
 SELECT
   session_stamp,
-  created_at,
-  status,
-  session_type_key,
-  session_type_label,
-  session_hidden_by_default,
-  app_runs,
-  findings_ready,
-  permissions_ready,
-  strings_ready,
-  audit_ready,
-  link_ready,
-  session_usability,
-  is_usable_complete
-FROM v_web_static_session_health
+  COALESCE(last_ended_at, first_created_at) AS created_at,
+  session_status AS status,
+  NULL AS session_type_key,
+  NULL AS session_type_label,
+  CASE WHEN LOWER(COALESCE(web_visibility_default, 'public')) = 'public' THEN 0 ELSE 1 END AS session_hidden_by_default,
+  total_run_count AS app_runs,
+  total_findings_rows AS findings_ready,
+  total_permission_matrix_rows AS permissions_ready,
+  total_string_summary_rows AS strings_ready,
+  total_permission_risk_rows AS audit_ready,
+  session_link_rows AS link_ready,
+  CASE LOWER(COALESCE(usability_class, ''))
+    WHEN 'ready' THEN 'usable_complete'
+    WHEN 'partial' THEN 'partial_rows'
+    WHEN 'in_progress' THEN 'in_progress_no_rows'
+    WHEN 'failed' THEN 'failed'
+    ELSE COALESCE(usability_class, 'unknown')
+  END AS session_usability,
+  CASE WHEN COALESCE(web_default_eligible, 0) = 1 THEN 1 ELSE 0 END AS is_usable_complete
+FROM v_web_static_session_index_v2
+) AS session_index
 SQL;
 const SQL_STATIC_SESSION_QUALITY = <<<SQL
 SELECT

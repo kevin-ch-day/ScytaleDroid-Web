@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_static_session_health.php — v_web_static_session_health + run health helpers.
+// database/db_lib/db_static_session_health.php — v_web_static_session_index_v2 + run health helpers.
 require_once __DIR__ . '/db_queries.php';
 require_once __DIR__ . '/db_filters.php';
 function static_session_health(

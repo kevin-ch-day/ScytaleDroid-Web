@@ -30,10 +30,10 @@ $canLoadReportPayload = (
 
 if ($canLoadReportPayload) {
     $payload = build_app_report_payload($context);
-    $dbErrorDuringPayload = $payload['dbErrorDuringPayload'] ?? null;
-    unset($payload['dbErrorDuringPayload']);
-    if (is_string($dbErrorDuringPayload) && $dbErrorDuringPayload !== '') {
-        $errorMsg = $dbErrorDuringPayload;
+    $staticPayloadError = $payload['staticPayloadError'] ?? null;
+    unset($payload['staticPayloadError']);
+    if (is_string($staticPayloadError) && $staticPayloadError !== '') {
+        $errorMsg = $staticPayloadError;
     } else {
         extract($payload, EXTR_OVERWRITE);
     }

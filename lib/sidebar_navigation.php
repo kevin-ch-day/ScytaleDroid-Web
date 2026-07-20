@@ -52,9 +52,7 @@ $navSections = [
         'desc' => 'Review permission prevalence, sources, and sensitive combinations',
         'match' => [
           url('pages/permissions.php'),
-          url('pages/android_permissions.php'),
           '/pages/permissions.php',
-          '/pages/android_permissions.php',
         ],
       ],
       [
@@ -81,7 +79,7 @@ $navSections = [
       [
         'label' => 'Dynamic Collection Queue',
         'href' => url('pages/dynamic_collection_queue.php'),
-        'desc' => 'Research cohort baseline/interactive quota gaps and supplemental evidence',
+        'desc' => 'Current-build Strict Idle, QFG, interactive, and prior-build evidence lanes',
         'match' => [
           url('pages/dynamic_collection_queue.php'),
           '/pages/dynamic_collection_queue.php',
@@ -90,7 +88,7 @@ $navSections = [
       [
         'label' => 'Runtime Deviation',
         'href' => url('pages/dynamic.php'),
-        'desc' => 'Review dynamic runs, features, and regimes',
+        'desc' => 'Review governed runtime runs, PCAP features, service context, and regimes',
         'match' => [
           url('pages/dynamic.php'),
           '/pages/dynamic.php',

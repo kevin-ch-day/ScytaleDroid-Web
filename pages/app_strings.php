@@ -23,8 +23,7 @@ if ($packageName && $activeSession && !$errorMsg) {
         $summary = app_strings_summary($packageName, $activeSession);
         $samples = app_string_samples($packageName, $activeSession, 80);
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app strings failed: ' . $e);
+        $errorMsg = page_error_message('app strings', $e);
     }
 }
 

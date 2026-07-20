@@ -54,6 +54,10 @@ function _permission_intel_temp_surface(?string $sessionStamp): ?string
 {
     static $created = [];
 
+    if (!web_temp_tables_enabled()) {
+        return null;
+    }
+
     $normalized = trim((string)($sessionStamp ?? ''));
     $key = $normalized === '' ? 'current' : sha1($normalized);
     $tableName = 'tmp_scytale_perm_intel_' . substr($key, 0, 16);

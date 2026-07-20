@@ -3,19 +3,22 @@
 
 const SQL_RUNTIME_OVERVIEW = <<<SQL
 SELECT
-  (SELECT COUNT(*) FROM v_web_runtime_run_index) AS dynamic_runs,
-  (SELECT COUNT(DISTINCT package_name) FROM v_web_runtime_run_index) AS dynamic_packages,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(status) = 'success') AS successful_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(status) = 'degraded') AS degraded_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(status) = 'failed') AS failed_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE quota_state = 'QUOTA_VALID') AS quota_valid_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE quota_state = 'SUPPLEMENTAL_VALID') AS supplemental_valid_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE technical_validity_state = 'TECH_INVALID') AS invalid_or_skipped_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE technical_validity_state = 'TECH_LEGACY_UNKNOWN') AS legacy_or_unevaluated_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(COALESCE(static_link_state, '')) = 'static_linked') AS static_linked_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(COALESCE(static_link_state, '')) = 'missing_static_run_id') AS missing_static_link_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(COALESCE(feature_state, '')) = 'features_available') AS features_available_runs,
-  (SELECT COUNT(*) FROM v_web_runtime_run_index WHERE LOWER(COALESCE(feature_state, '')) = 'missing_features') AS missing_feature_runs,
+  COUNT(*) AS dynamic_runs,
+  COUNT(DISTINCT package_name) AS dynamic_packages,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(status, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'success' THEN 1 ELSE 0 END) AS successful_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(status, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'degraded' THEN 1 ELSE 0 END) AS degraded_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(status, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'failed' THEN 1 ELSE 0 END) AS failed_runs,
+  SUM(CASE WHEN CONVERT(COALESCE(quota_state, '') USING utf8mb4) COLLATE utf8mb4_unicode_ci = 'QUOTA_VALID' THEN 1 ELSE 0 END) AS quota_valid_runs,
+  SUM(CASE WHEN CONVERT(COALESCE(quota_state, '') USING utf8mb4) COLLATE utf8mb4_unicode_ci = 'SUPPLEMENTAL_VALID' THEN 1 ELSE 0 END) AS supplemental_valid_runs,
+  SUM(CASE WHEN valid_dataset_run = 1 AND LOWER(CONVERT(COALESCE(run_profile, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'baseline_idle' AND COALESCE(baseline_not_idle, 0) = 0 AND countable = 1 THEN 1 ELSE 0 END) AS strict_idle_runs,
+  SUM(CASE WHEN valid_dataset_run = 1 AND LOWER(CONVERT(COALESCE(run_profile, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'baseline_idle' AND COALESCE(baseline_not_idle, 0) = 1 AND countable = 0 AND COALESCE(low_signal, 0) = 0 THEN 1 ELSE 0 END) AS quiescent_fg_runs,
+  SUM(CASE WHEN valid_dataset_run = 1 AND (LOWER(CONVERT(COALESCE(run_profile, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci LIKE 'interaction_%' OR LOWER(CONVERT(COALESCE(run_profile, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci LIKE '%interactive%') THEN 1 ELSE 0 END) AS interactive_raw_runs,
+  SUM(CASE WHEN CONVERT(COALESCE(technical_validity_state, '') USING utf8mb4) COLLATE utf8mb4_unicode_ci = 'TECH_INVALID' THEN 1 ELSE 0 END) AS invalid_or_skipped_runs,
+  SUM(CASE WHEN CONVERT(COALESCE(technical_validity_state, '') USING utf8mb4) COLLATE utf8mb4_unicode_ci = 'TECH_LEGACY_UNKNOWN' THEN 1 ELSE 0 END) AS unevaluated_historical_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(static_link_state, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'static_linked' THEN 1 ELSE 0 END) AS static_linked_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(static_link_state, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'missing_static_run_id' THEN 1 ELSE 0 END) AS missing_static_link_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(feature_state, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'features_available' THEN 1 ELSE 0 END) AS features_available_runs,
+  SUM(CASE WHEN LOWER(CONVERT(COALESCE(feature_state, '') USING utf8mb4)) COLLATE utf8mb4_unicode_ci = 'missing_features' THEN 1 ELSE 0 END) AS missing_feature_runs,
   (SELECT COUNT(*) FROM dynamic_network_features) AS feature_rows,
   (SELECT COUNT(*) FROM dynamic_network_indicators) AS indicator_rows,
   (SELECT COUNT(*) FROM dynamic_domain_observations) AS domain_observation_rows,
@@ -27,6 +30,7 @@ SELECT
   (SELECT COUNT(*) FROM analysis_cohorts) AS cohorts,
   (SELECT COUNT(*) FROM analysis_ml_app_phase_model_metrics) AS model_metric_rows,
   (SELECT COUNT(*) FROM analysis_risk_regime_summary) AS risk_regime_rows
+FROM v_web_runtime_run_index
 SQL;
 const SQL_RUNTIME_RUNS_BASE = <<<SQL
 SELECT

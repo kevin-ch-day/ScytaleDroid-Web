@@ -23,8 +23,7 @@ if ($packageName && $activeSession && !$errorMsg) {
         $summary = app_findings_summary($packageName, $activeSession);
         $findings = app_findings_list($packageName, $activeSession, 150);
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app findings failed: ' . $e);
+        $errorMsg = page_error_message('app findings', $e);
     }
 }
 

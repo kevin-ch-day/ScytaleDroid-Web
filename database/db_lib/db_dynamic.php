@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_dynamic.php — compatibility loader for dynamic app/run DB helpers.
+// database/db_lib/db_dynamic.php — dynamic app/run helper facade.
 
 require_once __DIR__ . '/db_queries.php';
 require_once __DIR__ . '/db_filters.php';

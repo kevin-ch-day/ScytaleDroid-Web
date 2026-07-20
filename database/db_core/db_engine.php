@@ -97,11 +97,13 @@ function db(): PDO
 
     $dsn = db_dsn();
     $user = db_config_value('DB_USER', 'SCYTALEDROID_DB_USER');
-    $pass = db_env_first(['SCYTALEDROID_DB_PASS', 'SCYTALEDROID_DB_PASSWD']);
+    // Match the analyst CLI contract. Retain the legacy spelling only as a fallback.
+    $pass = db_env_first(['SCYTALEDROID_DB_PASSWD', 'SCYTALEDROID_DB_PASS']);
     if ($pass === null) {
         if (!defined('DB_PASS')) {
             throw new RuntimeException(
-                'Database password missing: set SCYTALEDROID_DB_PASS or SCYTALEDROID_DB_PASSWD in the environment, '
+                'Database password missing: set SCYTALEDROID_DB_PASSWD in the environment '
+                . '(SCYTALEDROID_DB_PASS is supported only for legacy deployments), '
                 . 'php-fpm pool env[], or DB_PASS in database/db_core/db_config.php '
                 . '(copied from database/db_core/db_config.example.php).'
             );

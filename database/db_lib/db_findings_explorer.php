@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_findings_explorer.php — compatibility loader for findings explorer DB helpers.
+// database/db_lib/db_findings_explorer.php — findings explorer helper facade.
 
 require_once __DIR__ . '/db_queries.php';
 require_once __DIR__ . '/db_filters.php';

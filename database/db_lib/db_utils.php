@@ -123,6 +123,22 @@ function db_exec(string $sql, array $params = []): int
 }
 
 /**
+ * Temporary-table acceleration is optional. Keep it disabled for the normal
+ * SELECT-only Web account; the affected read helpers fall back to views.
+ */
+function web_temp_tables_enabled(): bool
+{
+    static $enabled = null;
+    if ($enabled !== null) {
+        return $enabled;
+    }
+
+    $value = strtolower(trim((string)(db_env('SCYTALEDROID_WEB_ENABLE_TEMP_TABLES') ?? '')));
+    $enabled = in_array($value, ['1', 'true', 'yes', 'on'], true);
+    return $enabled;
+}
+
+/**
  * Resolve page, limit, and offset from a query array using global defaults.
  *
  * @param array<string,mixed> $q

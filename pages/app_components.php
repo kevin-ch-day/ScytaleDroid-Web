@@ -49,8 +49,7 @@ if ($packageName && $activeSession && !$errorMsg) {
             }
         }
     } catch (Throwable $e) {
-        $errorMsg = 'DB error: ' . $e->getMessage();
-        error_log('[ScytaleDroid-Web] app components failed: ' . $e);
+        $errorMsg = page_error_message('app components', $e);
     }
 }
 

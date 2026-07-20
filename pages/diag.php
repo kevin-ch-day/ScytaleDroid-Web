@@ -2,16 +2,23 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../database/db_lib/db_func.php';
 header('Content-Type: text/plain; charset=utf-8');
+header('Cache-Control: no-store, private');
 
 function diag_allowed(): bool
 {
-    $flag = getenv('SCYTALEDROID_WEB_ENABLE_DIAG');
-    if ($flag !== false && in_array(strtolower((string)$flag), ['1', 'true', 'yes'], true)) {
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (in_array($remote, ['127.0.0.1', '::1'], true)) {
         return true;
     }
 
-    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
-    return in_array($remote, ['127.0.0.1', '::1'], true);
+    $enabled = strtolower((string)(getenv('SCYTALEDROID_WEB_ENABLE_DIAG') ?: ''));
+    $expectedToken = getenv('SCYTALEDROID_WEB_DIAG_TOKEN');
+    $providedToken = $_SERVER['HTTP_X_SCYTALEDROID_DIAG_TOKEN'] ?? '';
+    return in_array($enabled, ['1', 'true', 'yes'], true)
+        && is_string($expectedToken)
+        && $expectedToken !== ''
+        && is_string($providedToken)
+        && hash_equals($expectedToken, $providedToken);
 }
 
 if (!diag_allowed()) {
@@ -24,7 +31,7 @@ try {
     $diag = app_diagnostics();
     echo "DB OK\n";
     echo "Version: {$diag['version']}\n";
-    echo "legacy_runs: retired from web diagnostics\n";
+    echo "historical_runtime_rows: not queried by this diagnostic endpoint\n";
     echo "static_runs: {$diag['static_runs']}\n";
     echo "static_analysis_findings_rows: {$diag['static_analysis_findings_rows']}\n";
     echo "v_web_app_findings_rows: {$diag['v_web_app_findings_rows']}\n";
@@ -38,5 +45,7 @@ try {
     echo "analysis_cohorts: {$diag['analysis_cohorts']}\n";
     echo "runtime_regime_rows: {$diag['runtime_regime_rows']}\n";
 } catch (Throwable $e) {
-    echo "DB ERROR\n" . $e->getMessage() . "\n";
+    error_log('[ScytaleDroid-Web] diagnostic query failed: ' . $e->getMessage());
+    http_response_code(503);
+    echo "DB ERROR\n";
 }

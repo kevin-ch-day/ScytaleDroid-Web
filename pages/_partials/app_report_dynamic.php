@@ -11,13 +11,6 @@
           $dynamicRootDomains[strtolower($root)] = true;
       }
   }
-  if (!function_exists('app_report_dynamic_csv')) {
-      function app_report_dynamic_csv($value): string
-      {
-          $text = trim((string)($value ?? ''));
-          return $text === '' ? '-' : $text;
-      }
-  }
   ?>
   <section class="section" id="dynamic">
     <div class="panel">
@@ -31,6 +24,9 @@
         </div>
       </div>
       <div class="panel-body">
+        <?php if (!empty($dynamicPayloadError ?? null)): ?>
+          <div class="alert alert-warning"><?= e((string)$dynamicPayloadError) ?></div>
+        <?php else: ?>
         <div class="metrics-grid">
           <div class="metric-card"><span class="metric-label">Dynamic Runs</span><span class="metric-value"><?= e((string)($dynamicSummary['dynamic_runs'] ?? 0)) ?></span></div>
           <div class="metric-card"><span class="metric-label">Valid PCAPs</span><span class="metric-value"><?= e((string)($dynamicSummary['valid_pcaps'] ?? 0)) ?></span></div>
@@ -54,12 +50,12 @@
                     <div>
                       <div class="app-primary"><?= e((string)($row['display_name'] ?? $row['signal_key'] ?? '')) ?></div>
                       <div class="table-subline">
-                        <?= e(app_report_dynamic_csv($row['focus_area'] ?? '')) ?> ·
-                        <?= e(app_report_dynamic_csv($row['severity_hint'] ?? '')) ?> ·
+                        <?= e(runtime_format_csv($row['focus_area'] ?? '')) ?> ·
+                        <?= e(runtime_format_csv($row['severity_hint'] ?? '')) ?> ·
                         domains <?= e((string)($row['distinct_domains'] ?? 0)) ?> ·
                         runs <?= e((string)($row['observed_run_count'] ?? 0)) ?>
                       </div>
-                      <div class="table-subline"><?= e(app_report_dynamic_csv($row['service_names_csv'] ?? '')) ?></div>
+                      <div class="table-subline"><?= e(runtime_format_csv($row['service_names_csv'] ?? '')) ?></div>
                     </div>
                     <span class="metric-value"><?= e(number_format((float)($row['total_indicator_hits'] ?? 0), 0)) ?></span>
                   </div>
@@ -77,11 +73,11 @@
                       <div class="app-primary"><?= e((string)($row['display_name'] ?? $row['service_key'] ?? '')) ?></div>
                       <div class="table-subline">
                         <?= e((string)($row['owner_name'] ?? '-')) ?> ·
-                        <?= e(app_report_dynamic_csv($row['service_category'] ?? '')) ?> ·
+                        <?= e(runtime_format_csv($row['service_category'] ?? '')) ?> ·
                         domains <?= e((string)($row['distinct_domains'] ?? 0)) ?> ·
                         runs <?= e((string)($row['observed_run_count'] ?? 0)) ?>
                       </div>
-                      <div class="table-subline"><?= e(app_report_dynamic_csv($row['signal_names_csv'] ?? $row['signal_keys_csv'] ?? '')) ?></div>
+                      <div class="table-subline"><?= e(runtime_format_csv($row['signal_names_csv'] ?? $row['signal_keys_csv'] ?? '')) ?></div>
                     </div>
                     <span class="metric-value"><?= e(number_format((float)($row['total_indicator_hits'] ?? 0), 0)) ?></span>
                   </div>
@@ -99,12 +95,12 @@
                       <div class="app-primary"><?= e((string)($row['observed_domain'] ?? '')) ?></div>
                       <div class="table-subline">
                         <?= e((string)($row['root_domain'] ?? '-')) ?> ·
-                        <?= e(app_report_dynamic_csv($row['owner_classes_csv'] ?? '')) ?> ·
-                        <?= e(app_report_dynamic_csv($row['role_classes_csv'] ?? '')) ?>
+                        <?= e(runtime_format_csv($row['owner_classes_csv'] ?? '')) ?> ·
+                        <?= e(runtime_format_csv($row['role_classes_csv'] ?? '')) ?>
                       </div>
                       <div class="table-subline">
-                        <?= e(app_report_dynamic_csv($row['service_names_csv'] ?? $row['service_keys_csv'] ?? '')) ?> ·
-                        <?= e(app_report_dynamic_csv($row['signal_names_csv'] ?? $row['signal_keys_csv'] ?? '')) ?>
+                        <?= e(runtime_format_csv($row['service_names_csv'] ?? $row['service_keys_csv'] ?? '')) ?> ·
+                        <?= e(runtime_format_csv($row['signal_names_csv'] ?? $row['signal_keys_csv'] ?? '')) ?>
                       </div>
                     </div>
                     <span class="metric-value"><?= e(number_format((float)($row['total_indicator_hits'] ?? 0), 0)) ?></span>
@@ -131,6 +127,7 @@
           <?php endif; ?>
         <?php else: ?>
           <p class="muted top-gap">No dynamic runtime rows are available for this package yet.</p>
+        <?php endif; ?>
         <?php endif; ?>
       </div>
     </div>

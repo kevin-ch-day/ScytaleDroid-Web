@@ -5,6 +5,7 @@
  * Exit 0 on success; non-zero on first failure (connectivity, missing view, etc.).
  *
  * Usage: php scripts/sd_web_db_smoke.php
+ * Set SCYTALEDROID_WEB_SMOKE_FULL=1 for heavyweight cohort/view probes.
  */
 declare(strict_types=1);
 
@@ -80,28 +81,34 @@ $checks = [
         $pkg = $firstPackage();
         return $pkg === null ? true : app_sessions($pkg, 1);
     },
-    'app_findings_summary' => static function () use ($firstPackageWithSession) {
-        [$pkg, $stamp] = $firstPackageWithSession();
-        return ($pkg === null || $stamp === null) ? true : app_findings_summary($pkg, $stamp);
-    },
-    'app_dynamic_summary' => static function () use ($firstPackageWithDynamicRun) {
-        [$pkg, $_runId] = $firstPackageWithDynamicRun();
-        return $pkg === null ? true : app_dynamic_summary($pkg);
-    },
-    'app_dynamic_runs' => static function () use ($firstPackageWithDynamicRun) {
-        [$pkg, $_runId] = $firstPackageWithDynamicRun();
-        return $pkg === null ? true : app_dynamic_runs($pkg, 1);
-    },
-    'dynamic_run_detail' => static function () use ($firstPackageWithDynamicRun) {
-        [$_pkg, $runId] = $firstPackageWithDynamicRun();
-        return $runId === null ? true : dynamic_run_detail($runId);
-    },
-    'static_dynamic_summary_probe' => static fn() => static_dynamic_summary_probe(),
-    'dynamic_collection_queue_overview' => static fn() => dynamic_collection_queue_overview(),
-    'dynamic_collection_queue_probe' => static fn() => dynamic_collection_queue_probe(1),
-    'dynamic_collection_queue_recommended' => static fn() => dynamic_collection_queue_recommended_captures(3),
     'app_diagnostics' => static fn() => app_diagnostics(),
 ];
+
+// This view is intentionally comprehensive and can be expensive on a large
+// historical corpus. Keep the default deployment smoke bounded; operators can
+// opt into these additional read-model checks during maintenance.
+if (in_array(strtolower((string)(getenv('SCYTALEDROID_WEB_SMOKE_FULL') ?: '')), ['1', 'true', 'yes'], true)) {
+    $checks['app_findings_summary'] = static function () use ($firstPackageWithSession) {
+        [$pkg, $stamp] = $firstPackageWithSession();
+        return ($pkg === null || $stamp === null) ? true : app_findings_summary($pkg, $stamp);
+    };
+    $checks['app_dynamic_summary'] = static function () use ($firstPackageWithDynamicRun) {
+        [$pkg, $_runId] = $firstPackageWithDynamicRun();
+        return $pkg === null ? true : app_dynamic_summary($pkg);
+    };
+    $checks['app_dynamic_runs'] = static function () use ($firstPackageWithDynamicRun) {
+        [$pkg, $_runId] = $firstPackageWithDynamicRun();
+        return $pkg === null ? true : app_dynamic_runs($pkg, 1);
+    };
+    $checks['dynamic_run_detail'] = static function () use ($firstPackageWithDynamicRun) {
+        [$_pkg, $runId] = $firstPackageWithDynamicRun();
+        return $runId === null ? true : dynamic_run_detail($runId);
+    };
+    $checks['static_dynamic_summary_probe'] = static fn() => static_dynamic_summary_probe();
+    $checks['dynamic_collection_queue_overview'] = static fn() => dynamic_collection_queue_overview();
+    $checks['dynamic_collection_queue_probe'] = static fn() => dynamic_collection_queue_probe(1);
+    $checks['dynamic_collection_queue_recommended'] = static fn() => dynamic_collection_queue_recommended_captures(3);
+}
 
 $fail = 0;
 foreach ($checks as $label => $fn) {

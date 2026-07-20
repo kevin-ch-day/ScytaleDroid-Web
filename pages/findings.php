@@ -47,8 +47,7 @@ try {
     $total = (int)($pg['total'] ?? 0);
     $sourceSummary = findings_explorer_source_summary($severity, $category, $masvsArea, $detector, $sessionStamp, $scopeFilter, $q, $includeSynthetic);
 } catch (Throwable $e) {
-    $errorMsg = 'DB error: ' . $e->getMessage();
-    error_log('[ScytaleDroid-Web] findings explorer failed: ' . $e);
+    $errorMsg = page_error_message('findings explorer', $e);
 }
 
 $baseUrl = PAGES_URL . '/findings.php';

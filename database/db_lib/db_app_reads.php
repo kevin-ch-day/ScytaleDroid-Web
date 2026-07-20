@@ -1,5 +1,5 @@
 <?php
-// database/db_lib/db_app_reads.php — compatibility loader for per-package/session DB helpers.
+// database/db_lib/db_app_reads.php — per-package/session helper facade.
 
 require_once __DIR__ . '/db_queries.php';
 require_once __DIR__ . '/db_filters.php';

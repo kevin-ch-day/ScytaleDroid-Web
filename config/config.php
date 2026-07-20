@@ -3,9 +3,46 @@
 
 // ── App identity ───────────────────────────────────────────────────────────────
 if (!defined('APP_NAME')) define('APP_NAME', 'ScytaleDroid');
-// Optional: app version for cache-busting (edit when you ship UI changes)
-if (!defined('APP_VERSION')) define('APP_VERSION', '0.2.1');
+// Cache-busting release version. Keep aligned with scytaledroid/Config/version.py.
+if (!defined('APP_VERSION')) define('APP_VERSION', '2.3.1');
 if (!defined('TRUST_PROXY_HEADERS')) define('TRUST_PROXY_HEADERS', getenv('SD_TRUST_PROXY_HEADERS') === '1');
+
+function config_env(string $key): ?string
+{
+    $value = getenv($key);
+    if (is_string($value) && $value !== '') {
+        return $value;
+    }
+    if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+        return $_SERVER[$key];
+    }
+    return null;
+}
+
+/** Return a normalized configured origin or null when it is unsafe. */
+function configured_app_origin(?string $origin): ?string
+{
+    $origin = trim((string)$origin);
+    if ($origin === '') {
+        return null;
+    }
+
+    $parts = parse_url($origin);
+    if (!is_array($parts)
+        || !isset($parts['scheme'], $parts['host'])
+        || !in_array(strtolower((string)$parts['scheme']), ['http', 'https'], true)
+        || isset($parts['user'], $parts['pass'], $parts['query'], $parts['fragment'])
+        || (isset($parts['path']) && $parts['path'] !== '' && $parts['path'] !== '/')
+    ) {
+        return null;
+    }
+
+    $normalized = strtolower((string)$parts['scheme']) . '://' . strtolower((string)$parts['host']);
+    if (isset($parts['port'])) {
+        $normalized .= ':' . (int)$parts['port'];
+    }
+    return $normalized;
+}
 
 // ── Base URL (subdirectory) ───────────────────────────────────────────────────
 // Options (precedence):
@@ -43,19 +80,9 @@ if (!defined('BASE_URL')) {
 
 // ── Origin (scheme + host) for absolute URLs ──────────────────────────────────
 if (!defined('APP_ORIGIN')) {
-    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    if (TRUST_PROXY_HEADERS) {
-        $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $proto;
-        $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $host;
-    }
-    // If HTTP_HOST is missing a port but SERVER_PORT is non-standard, append
-    if (strpos($host, ':') === false && isset($_SERVER['SERVER_PORT'])) {
-        $port = (string)$_SERVER['SERVER_PORT'];
-        $isDefault = ($proto === 'http' && $port === '80') || ($proto === 'https' && $port === '443');
-        if (!$isDefault) $host .= ':' . $port;
-    }
-    define('APP_ORIGIN', $proto . '://' . $host);
+    // Canonical links must not be derived from an untrusted Host header. Set
+    // SD_APP_ORIGIN explicitly in deployments that need absolute URLs.
+    define('APP_ORIGIN', configured_app_origin(config_env('SD_APP_ORIGIN')) ?? '');
 }
 
 // ── Convenience URL bases ─────────────────────────────────────────────────────
@@ -122,7 +149,7 @@ if (!function_exists('abs_url')) {
     /** Absolute URL: abs_url('pages/index.php') → https://host/<base>/pages/index.php */
     function abs_url(string $path = ''): string
     {
-        return APP_ORIGIN . url($path);
+        return APP_ORIGIN !== '' ? APP_ORIGIN . url($path) : url($path);
     }
 }
 if (!function_exists('asset_url')) {
