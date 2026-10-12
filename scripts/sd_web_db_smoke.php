@@ -66,7 +66,11 @@ $firstPackageWithDynamicRun = static function (): array {
 };
 
 $checks = [
-    'db_ping' => static fn(): bool => db_ping(),
+    'db_ping' => static function (): void {
+        if (!db_ping()) {
+            throw new RuntimeException('database ping failed');
+        }
+    },
     'fleet_dashboard_overview' => static fn() => fleet_dashboard_overview(),
     'findings_categories' => static fn() => findings_categories(),
     'permission_intel_session_options' => static fn() => permission_intel_session_options(),
