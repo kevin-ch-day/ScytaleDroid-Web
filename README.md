@@ -87,7 +87,7 @@ Pages never run raw SQL; they pull sanitized inputs from `lib/guards.php`, call 
 - Run the application using a database account with **SELECT-only** permissions.
   `SCYTALEDROID_WEB_ENABLE_TEMP_TABLES=1` is an optional performance setting for
   deployments that intentionally grant `CREATE TEMPORARY TABLES`; it is off by default.
-- Do not expose the repository root directly without server-level deny rules. If the app remains under `/var/www/html/ScytaleDroid-Web`, install rules equivalent to `deploy/apache/ScytaleDroid-Web.conf`.
+- `deploy/apache/ScytaleDroid-Web.conf` is a localhost-only staging template for `/srv/scytaledroid-web/current`. It denies source, SQL, configuration, and operator paths at both filesystem and URL boundaries. Review the release tree, PHP-FPM pool, database grants, and SELinux labels before installing it; the template alone does not deploy the app.
 - Do not rely on `.htaccess` unless Apache has `AllowOverride` enabled for this directory.
 - Keep `pages/diag.php` localhost-only by default. Remote diagnostics require both
   `SCYTALEDROID_WEB_ENABLE_DIAG=1` and a matching `X-ScytaleDroid-Diag-Token`
